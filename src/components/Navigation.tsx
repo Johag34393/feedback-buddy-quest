@@ -1,29 +1,49 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { BookOpen, MessageCircle, FileText } from "lucide-react";
+import { BookOpen, MessageCircle, FileText, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const Navigation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Récupérer les informations de l'utilisateur connecté
+  const userString = localStorage.getItem("user");
+  const user = userString ? JSON.parse(userString) : null;
+  const isAdmin = user?.role === "admin";
   
   const navItems = [
     {
       name: "Créer des questions",
-      path: "/",
-      Icon: BookOpen
+      path: "/questions",
+      Icon: BookOpen,
+      adminOnly: true
     },
     {
       name: "Réponses",
       path: "/answers",
-      Icon: FileText
+      Icon: FileText,
+      adminOnly: false
     },
     {
       name: "Messages",
       path: "/messages",
-      Icon: MessageCircle
+      Icon: MessageCircle,
+      adminOnly: false
     }
   ];
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    toast.success("Vous êtes déconnecté");
+    navigate("/login");
+  };
+
+  // Filtrer les éléments de navigation en fonction du rôle de l'utilisateur
+  const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <nav className="bg-white shadow-md py-4">
@@ -32,10 +52,15 @@ const Navigation = () => {
           <div className="flex space-x-1">
             <span className="font-bold text-xl text-primary">Quiz</span>
             <span className="font-bold text-xl text-blue-600">App</span>
+            {user && (
+              <span className="ml-2 text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-md">
+                {user.name}
+              </span>
+            )}
           </div>
           
           <div className="hidden md:flex space-x-6">
-            {navItems.map((item) => (
+            {filteredNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -50,10 +75,20 @@ const Navigation = () => {
                 <span>{item.name}</span>
               </Link>
             ))}
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleLogout}
+              className="flex items-center space-x-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Déconnexion</span>
+            </Button>
           </div>
           
           <div className="md:hidden flex items-center">
-            {/* Hamburger menu pour mobile */}
+            {/* Menu hamburger pour mobile */}
             <button className="p-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
