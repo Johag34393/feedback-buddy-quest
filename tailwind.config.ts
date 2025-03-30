@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				positive: {
+					DEFAULT: '#10B981', // Vert pour "coup de cœur"
+					hover: '#059669',
+				},
+				negative: {
+					DEFAULT: '#EF4444', // Rouge pour "coup de gueule"
+					hover: '#DC2626',
 				}
 			},
 			borderRadius: {
