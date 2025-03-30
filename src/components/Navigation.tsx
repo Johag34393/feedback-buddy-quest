@@ -2,7 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { MessageCircle, Star, Home } from "lucide-react";
+import { MessageCircle, Star, Home, BookOpen } from "lucide-react";
 
 const Navigation = () => {
   const location = useLocation();
@@ -17,6 +17,11 @@ const Navigation = () => {
       name: "Questionnaire",
       path: "/questionnaire",
       Icon: Star
+    },
+    {
+      name: "Quiz",
+      path: "/quiz",
+      Icon: BookOpen
     },
     {
       name: "Feedback",
