@@ -2,30 +2,25 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { MessageCircle, Star, Home, BookOpen } from "lucide-react";
+import { BookOpen, MessageCircle, FileText } from "lucide-react";
 
 const Navigation = () => {
   const location = useLocation();
   
   const navItems = [
     {
-      name: "Tableau de bord",
+      name: "Créer des questions",
       path: "/",
-      Icon: Home
-    },
-    {
-      name: "Questionnaire",
-      path: "/questionnaire",
-      Icon: Star
-    },
-    {
-      name: "Quiz",
-      path: "/quiz",
       Icon: BookOpen
     },
     {
-      name: "Feedback",
-      path: "/feedback",
+      name: "Réponses",
+      path: "/answers",
+      Icon: FileText
+    },
+    {
+      name: "Messages",
+      path: "/messages",
       Icon: MessageCircle
     }
   ];
@@ -35,8 +30,8 @@ const Navigation = () => {
       <div className="container mx-auto">
         <div className="flex justify-between items-center">
           <div className="flex space-x-1">
-            <span className="font-bold text-xl text-primary">Feedback</span>
-            <span className="font-bold text-xl text-blue-600">Buddy</span>
+            <span className="font-bold text-xl text-primary">Quiz</span>
+            <span className="font-bold text-xl text-blue-600">App</span>
           </div>
           
           <div className="hidden md:flex space-x-6">
