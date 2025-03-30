@@ -1,14 +1,16 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { BookOpen, MessageCircle, FileText, LogOut } from "lucide-react";
+import { BookOpen, MessageCircle, FileText, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Récupérer les informations de l'utilisateur connecté
   const userString = localStorage.getItem("user");
@@ -29,12 +31,28 @@ const Navigation = () => {
       adminOnly: false
     },
     {
+      name: "Révision",
+      path: "/revision",
+      Icon: Search,
+      adminOnly: false
+    },
+    {
       name: "Messages",
       path: "/messages",
       Icon: MessageCircle,
       adminOnly: false
     }
   ];
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim() !== "") {
+      localStorage.setItem("searchQuery", searchQuery);
+      navigate("/answers");
+    } else {
+      toast.warning("Veuillez saisir un terme de recherche");
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -48,10 +66,9 @@ const Navigation = () => {
   return (
     <nav className="bg-white shadow-md py-4">
       <div className="container mx-auto">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div className="flex space-x-1">
-            <span className="font-bold text-xl text-primary">Quiz</span>
-            <span className="font-bold text-xl text-blue-600">App</span>
+            <span className="font-bold text-xl text-primary">EPHATA</span>
             {user && (
               <span className="ml-2 text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-md">
                 {user.name}
@@ -59,7 +76,21 @@ const Navigation = () => {
             )}
           </div>
           
-          <div className="hidden md:flex space-x-6">
+          <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-auto">
+            <Input
+              type="search"
+              placeholder="Rechercher des questions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1"
+            />
+            <Button type="submit" variant="outline">
+              <Search className="h-4 w-4 mr-2" />
+              Rechercher
+            </Button>
+          </form>
+          
+          <div className="hidden md:flex space-x-4">
             {filteredNavItems.map((item) => (
               <Link
                 key={item.path}

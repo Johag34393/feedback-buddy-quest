@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import QuestionCreator from "./pages/QuestionCreator";
 import Answers from "./pages/Answers";
+import Revision from "./pages/Revision";
 import MessageCollection from "./pages/MessageCollection";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -68,6 +69,7 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="answers" element={<Answers />} />
+              <Route path="revision" element={<Revision />} />
               <Route path="messages" element={<MessageCollection />} />
             </Route>
             <Route path="*" element={<NotFound />} />

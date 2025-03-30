@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
 
 // Codes d'accès prédéfinis
 const ACCESS_CODES = {
@@ -16,7 +15,6 @@ const ACCESS_CODES = {
 
 const Login = () => {
   const [accessCode, setAccessCode] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = () => {
@@ -42,45 +40,18 @@ const Login = () => {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim() !== "") {
-      localStorage.setItem("searchQuery", searchQuery);
-      navigate("/answers");
-    } else {
-      toast.warning("Veuillez saisir un terme de recherche");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-100 flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">
-            <span className="text-primary">Quiz</span>
-            <span className="text-blue-600">App</span>
+            <span className="text-primary">EPHATA</span>
           </CardTitle>
           <CardDescription>
             Connectez-vous pour accéder à l'application
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <Input
-                type="search"
-                placeholder="Rechercher des questions..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1"
-              />
-              <Button type="submit" variant="outline">
-                <Search className="h-4 w-4 mr-2" />
-                Rechercher
-              </Button>
-            </form>
-          </div>
-          
           <div className="space-y-2">
             <label htmlFor="accessCode" className="text-sm font-medium">
               Code d'accès
