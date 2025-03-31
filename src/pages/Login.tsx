@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,15 +11,54 @@ import {
   InputOTPSlot 
 } from "@/components/ui/input-otp";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Trash2, AlertCircle } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
-// Codes d'accès prédéfinis
-const ACCESS_CODES = {
-  "ADMIN2024": { role: "admin", name: "Administrateur" },
-  "VISIT001": { role: "visitor", name: "Visiteur 1" },
-  "VISIT002": { role: "visitor", name: "Visiteur 2" },
+// Initialize access codes
+const initializeAccessCodes = () => {
+  const storedCodes = localStorage.getItem("accessCodes");
+  if (storedCodes) {
+    return JSON.parse(storedCodes);
+  }
+  return {
+    "ADMIN2024": { role: "admin", name: "Administrateur" },
+    "VISIT001": { role: "visitor", name: "Visiteur 1" },
+    "VISIT002": { role: "visitor", name: "Visiteur 2" },
+  };
+};
+
+// Initialize OTP codes
+const initializeOTPCodes = () => {
+  const storedOTPCodes = localStorage.getItem("otpCodes");
+  if (storedOTPCodes) {
+    return JSON.parse(storedOTPCodes);
+  }
+  return {
+    "1234": { role: "visitor", name: "Visiteur OTP 1" },
+  };
 };
 
 const Login = () => {
+  const [ACCESS_CODES, setAccessCodes] = useState(initializeAccessCodes());
+  const [OTP_CODES, setOTPCodes] = useState(initializeOTPCodes());
   const [accessCode, setAccessCode] = useState("");
   const [useOTP, setUseOTP] = useState(false);
   const [otpValue, setOtpValue] = useState("");
@@ -27,19 +66,32 @@ const Login = () => {
   const [newCodeRole, setNewCodeRole] = useState("visitor");
   const [newCodeName, setNewCodeName] = useState("");
   const [generatedCode, setGeneratedCode] = useState("");
-  const navigate = useNavigate();
+  const [newOTPCode, setNewOTPCode] = useState("");
+  const [newOTPName, setNewOTPName] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [codeToDelete, setCodeToDelete] = useState({ code: "", isOTP: false });
+  navigate = useNavigate();
+
+  // Save codes to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("accessCodes", JSON.stringify(ACCESS_CODES));
+  }, [ACCESS_CODES]);
+
+  useEffect(() => {
+    localStorage.setItem("otpCodes", JSON.stringify(OTP_CODES));
+  }, [OTP_CODES]);
 
   const handleLogin = () => {
     if (useOTP) {
-      if (otpValue.length !== 6) {
-        toast.error("Veuillez saisir un code à 6 chiffres");
+      if (otpValue.length !== 4) {
+        toast.error("Veuillez saisir un code à 4 chiffres");
         return;
       }
 
-      // Vérifier le code OTP (à implémenter avec une vraie logique de vérification)
-      // Pour l'exemple, on accepte 123456 comme code valide
-      if (otpValue === "123456") {
-        handleSuccessfulLogin({ role: "visitor", name: "Visiteur OTP" });
+      // Check OTP code
+      const otpDetails = OTP_CODES[otpValue];
+      if (otpDetails) {
+        handleSuccessfulLogin(otpDetails, true);
       } else {
         toast.error("Code OTP invalide");
       }
@@ -52,19 +104,19 @@ const Login = () => {
       const userDetails = ACCESS_CODES[accessCode];
       
       if (userDetails) {
-        handleSuccessfulLogin(userDetails);
+        handleSuccessfulLogin(userDetails, false);
       } else {
         toast.error("Code d'accès invalide");
       }
     }
   };
 
-  const handleSuccessfulLogin = (userDetails) => {
-    // Stocker les informations d'utilisateur dans localStorage
+  const handleSuccessfulLogin = (userDetails, isOTP) => {
+    // Store user information in localStorage
     localStorage.setItem("user", JSON.stringify({
       role: userDetails.role,
       name: userDetails.name,
-      accessCode: useOTP ? "OTP" : accessCode
+      accessCode: isOTP ? `OTP-${otpValue}` : accessCode
     }));
     
     toast.success(`Bienvenue, ${userDetails.name}`);
@@ -85,14 +137,76 @@ const Login = () => {
       return;
     }
 
-    // Générer un code aléatoire (en pratique, vous devriez utiliser une fonction plus sécurisée)
+    // Generate a random code (in practice, you should use a more secure function)
     const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     
-    // Ajouter ce code à la liste des codes d'accès (dans une application réelle, cela serait stocké en base de données)
-    ACCESS_CODES[randomCode] = { role: newCodeRole, name: newCodeName };
+    // Add this code to the list of access codes
+    setAccessCodes(prevCodes => ({
+      ...prevCodes,
+      [randomCode]: { role: newCodeRole, name: newCodeName }
+    }));
     
     setGeneratedCode(randomCode);
     toast.success(`Code d'accès généré pour ${newCodeName}`);
+  };
+
+  const generateOTPCode = () => {
+    if (!newOTPName.trim()) {
+      toast.error("Veuillez saisir un nom pour l'utilisateur OTP");
+      return;
+    }
+
+    if (newOTPCode.length !== 4 || !/^\d+$/.test(newOTPCode)) {
+      toast.error("Le code OTP doit être composé de 4 chiffres");
+      return;
+    }
+
+    // Add this OTP code to the list
+    setOTPCodes(prevCodes => ({
+      ...prevCodes,
+      [newOTPCode]: { role: "visitor", name: newOTPName }
+    }));
+
+    toast.success(`Code OTP permanent généré pour ${newOTPName}`);
+    setNewOTPCode("");
+    setNewOTPName("");
+  };
+
+  const handleDeleteCode = (code, isOTP) => {
+    setCodeToDelete({ code, isOTP });
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteCode = () => {
+    const { code, isOTP } = codeToDelete;
+    
+    if (isOTP) {
+      if (code === "1234" && Object.keys(OTP_CODES).length === 1) {
+        toast.error("Impossible de supprimer le dernier code OTP par défaut");
+      } else {
+        setOTPCodes(prevCodes => {
+          const newCodes = { ...prevCodes };
+          delete newCodes[code];
+          return newCodes;
+        });
+        toast.success("Code OTP révoqué avec succès");
+      }
+    } else {
+      if (code === "ADMIN2024") {
+        toast.error("Impossible de supprimer le code administrateur");
+      } else if ((code === "VISIT001" || code === "VISIT002") && Object.keys(ACCESS_CODES).length <= 3) {
+        toast.error("Impossible de supprimer les codes visiteurs par défaut");
+      } else {
+        setAccessCodes(prevCodes => {
+          const newCodes = { ...prevCodes };
+          delete newCodes[code];
+          return newCodes;
+        });
+        toast.success("Code d'accès révoqué avec succès");
+      }
+    }
+    
+    setShowDeleteDialog(false);
   };
 
   return (
@@ -124,21 +238,19 @@ const Login = () => {
 
           {useOTP ? (
             <div className="space-y-2">
-              <label className="text-sm font-medium block">Code à usage unique (OTP)</label>
+              <label className="text-sm font-medium block">Code à usage permanent (OTP)</label>
               <div className="flex justify-center">
-                <InputOTP maxLength={6} value={otpValue} onChange={setOtpValue}>
+                <InputOTP maxLength={4} value={otpValue} onChange={setOtpValue}>
                   <InputOTPGroup>
                     <InputOTPSlot index={0} />
                     <InputOTPSlot index={1} />
                     <InputOTPSlot index={2} />
                     <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
                   </InputOTPGroup>
                 </InputOTP>
               </div>
               <p className="text-xs text-gray-500 text-center mt-2">
-                Saisissez le code à 6 chiffres qui vous a été communiqué
+                Saisissez le code à 4 chiffres qui vous a été communiqué
               </p>
             </div>
           ) : (
@@ -166,54 +278,165 @@ const Login = () => {
         </CardFooter>
       </Card>
 
-      {/* Dialog pour la génération de codes d'accès */}
+      {/* Dialog for access code generation and management */}
       <Dialog open={showAdminPanel} onOpenChange={setShowAdminPanel}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Générer des codes d'accès</DialogTitle>
+            <DialogTitle>Gestion des codes d'accès</DialogTitle>
             <DialogDescription>
-              Créez des codes d'accès pour vos visiteurs
+              Créez et gérez les codes d'accès pour vos visiteurs
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Type d'accès</label>
-              <select 
-                className="w-full p-2 border rounded-md"
-                value={newCodeRole}
-                onChange={(e) => setNewCodeRole(e.target.value)}
-              >
-                <option value="visitor">Visiteur</option>
-                <option value="student">Étudiant</option>
-              </select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nom du visiteur</label>
-              <Input
-                placeholder="Nom du visiteur"
-                value={newCodeName}
-                onChange={(e) => setNewCodeName(e.target.value)}
-              />
-            </div>
-            
-            {generatedCode && (
-              <div className="p-4 bg-gray-100 rounded-md">
-                <p className="text-sm font-medium">Code généré :</p>
-                <p className="text-xl font-bold text-center py-2">{generatedCode}</p>
-                <p className="text-xs text-gray-500">Copiez ce code et partagez-le avec {newCodeName}</p>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="space-y-4 py-4 md:w-1/2">
+              <h3 className="text-lg font-medium">Générer un code d'accès</h3>
+              
+              <div className="space-y-2">
+                <Label>Type d'accès</Label>
+                <select 
+                  className="w-full p-2 border rounded-md"
+                  value={newCodeRole}
+                  onChange={(e) => setNewCodeRole(e.target.value)}
+                >
+                  <option value="visitor">Visiteur</option>
+                  <option value="student">Étudiant</option>
+                </select>
               </div>
-            )}
+              
+              <div className="space-y-2">
+                <Label>Nom du visiteur</Label>
+                <Input
+                  placeholder="Nom du visiteur"
+                  value={newCodeName}
+                  onChange={(e) => setNewCodeName(e.target.value)}
+                />
+              </div>
+              
+              <Button onClick={generateAccessCode} className="w-full">
+                Générer un code
+              </Button>
+              
+              {generatedCode && (
+                <div className="p-4 bg-gray-100 rounded-md">
+                  <p className="text-sm font-medium">Code généré :</p>
+                  <p className="text-xl font-bold text-center py-2">{generatedCode}</p>
+                  <p className="text-xs text-gray-500">Copiez ce code et partagez-le avec {newCodeName}</p>
+                </div>
+              )}
+              
+              <h3 className="text-lg font-medium mt-6">Générer un code OTP permanent</h3>
+              
+              <div className="space-y-2">
+                <Label>Code OTP (4 chiffres)</Label>
+                <Input
+                  placeholder="1234"
+                  value={newOTPCode}
+                  onChange={(e) => setNewOTPCode(e.target.value)}
+                  maxLength={4}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Nom de l'utilisateur</Label>
+                <Input
+                  placeholder="Nom de l'utilisateur"
+                  value={newOTPName}
+                  onChange={(e) => setNewOTPName(e.target.value)}
+                />
+              </div>
+              
+              <Button onClick={generateOTPCode} className="w-full">
+                Générer un code OTP
+              </Button>
+            </div>
+            
+            <div className="md:w-1/2 space-y-4">
+              <h3 className="text-lg font-medium">Codes d'accès existants</h3>
+              <div className="max-h-60 overflow-y-auto border rounded">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Rôle</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(ACCESS_CODES).map(([code, details]) => (
+                      <TableRow key={code}>
+                        <TableCell className="font-medium">{code}</TableCell>
+                        <TableCell>{details.name}</TableCell>
+                        <TableCell>{details.role}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteCode(code, false)}
+                            disabled={code === "ADMIN2024"}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              <h3 className="text-lg font-medium mt-4">Codes OTP permanents</h3>
+              <div className="max-h-60 overflow-y-auto border rounded">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(OTP_CODES).map(([code, details]) => (
+                      <TableRow key={code}>
+                        <TableCell className="font-medium">{code}</TableCell>
+                        <TableCell>{details.name}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteCode(code, true)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
-          
-          <DialogFooter>
-            <Button onClick={generateAccessCode}>
-              Générer un code
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation dialog for code deletion */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir révoquer ce code d'accès ? 
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteCode} className="bg-red-600 hover:bg-red-700">
+              Révoquer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
