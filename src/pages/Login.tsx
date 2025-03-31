@@ -70,7 +70,7 @@ const Login = () => {
   const [newOTPName, setNewOTPName] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [codeToDelete, setCodeToDelete] = useState({ code: "", isOTP: false });
-  navigate = useNavigate();
+  const navigate = useNavigate();
 
   // Save codes to localStorage whenever they change
   useEffect(() => {
@@ -111,7 +111,7 @@ const Login = () => {
     }
   };
 
-  const handleSuccessfulLogin = (userDetails, isOTP) => {
+  const handleSuccessfulLogin = (userDetails: { role: string, name: string }, isOTP: boolean) => {
     // Store user information in localStorage
     localStorage.setItem("user", JSON.stringify({
       role: userDetails.role,
@@ -172,7 +172,7 @@ const Login = () => {
     setNewOTPName("");
   };
 
-  const handleDeleteCode = (code, isOTP) => {
+  const handleDeleteCode = (code: string, isOTP: boolean) => {
     setCodeToDelete({ code, isOTP });
     setShowDeleteDialog(true);
   };

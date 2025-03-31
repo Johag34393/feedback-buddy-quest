@@ -11,6 +11,7 @@ import Revision from "./pages/Revision";
 import MessageCollection from "./pages/MessageCollection";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import Deployment from "./pages/Deployment";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,11 @@ const App = () => {
               <Route path="answers" element={<Answers />} />
               <Route path="revision" element={<Revision />} />
               <Route path="messages" element={<MessageCollection />} />
+              <Route path="deployment" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Deployment />
+                </ProtectedRoute>
+              } />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,6 +1,6 @@
 
 import React, { useEffect } from "react";
-import Navigation from "@/components/Navigation";
+import CustomNavigation from "@/components/CustomNavigation";
 import { Outlet, useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -16,7 +16,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      <CustomNavigation />
       <main>
         <Outlet />
       </main>
