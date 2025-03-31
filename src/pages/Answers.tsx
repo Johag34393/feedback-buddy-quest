@@ -1,225 +1,135 @@
 
 import React, { useState, useEffect } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+import { Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-interface QuestionOption {
+interface UserAnswer {
   id: string;
-  text: string;
-}
-
-interface Question {
-  id: number;
-  text: string;
-  options: QuestionOption[];
-  correctAnswerId: string;
+  username: string;
+  date: string;
+  score: number;
+  totalScore: number;
+  percentage: number;
+  answers: {
+    questionId: string;
+    userAnswer: string;
+    isCorrect: boolean;
+  }[];
 }
 
 const Answers = () => {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
-  const [score, setScore] = useState<number | null>(null);
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Charger les questions depuis le localStorage
-    const savedQuestions = localStorage.getItem("quizQuestions");
-    if (savedQuestions) {
-      setQuestions(JSON.parse(savedQuestions));
+    // Vérifier si l'utilisateur est admin
+    const userString = localStorage.getItem("user");
+    if (userString) {
+      const user = JSON.parse(userString);
+      setIsAdmin(user.role === "admin");
     }
-    setLoading(false);
+
+    // Charger les réponses depuis localStorage
+    const savedAnswers = localStorage.getItem("userAnswers");
+    if (savedAnswers) {
+      setUserAnswers(JSON.parse(savedAnswers));
+    }
   }, []);
 
-  const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
-  };
-
-  const handleAnswerSelect = (value: string) => {
-    setSelectedAnswers({
-      ...selectedAnswers,
-      [questions[currentQuestionIndex].id]: value
-    });
-  };
-
-  const calculateScore = () => {
-    let totalScore = 0;
+  const exportToCSV = () => {
+    // Entêtes CSV
+    let csvContent = "ID,Utilisateur,Date,Score,Total,Pourcentage\n";
     
-    questions.forEach(question => {
-      if (selectedAnswers[question.id] === question.correctAnswerId) {
-        totalScore += 2; // Chaque réponse correcte vaut 2 points
-      }
+    // Ajouter chaque résultat
+    userAnswers.forEach(answer => {
+      const date = new Date(answer.date).toLocaleDateString();
+      csvContent += `${answer.id},${answer.username},${date},${answer.score},${answer.totalScore},${answer.percentage}%\n`;
     });
     
-    return totalScore;
-  };
-
-  const handleSubmit = () => {
-    const finalScore = calculateScore();
-    setScore(finalScore);
-    setQuizCompleted(true);
+    // Créer un blob et le télécharger
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "resultats_quiz.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     
     toast({
-      title: "Quiz terminé !",
-      description: `Votre score: ${finalScore}/20 points`,
+      title: "Export réussi",
+      description: "Les résultats ont été exportés avec succès",
     });
   };
-
-  const resetQuiz = () => {
-    setCurrentQuestionIndex(0);
-    setSelectedAnswers({});
-    setScore(null);
-    setQuizCompleted(false);
-  };
-
-  if (loading) {
-    return (
-      <div className="container mx-auto py-8 text-center">
-        <p>Chargement des questions...</p>
-      </div>
-    );
-  }
-
-  if (questions.length === 0) {
-    return (
-      <div className="container mx-auto py-8">
-        <Card className="max-w-3xl mx-auto">
-          <CardHeader>
-            <CardTitle>Aucune question disponible</CardTitle>
-            <CardDescription>
-              Veuillez d'abord créer des questions dans l'interface "Créer des questions"
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button onClick={() => window.location.href = "/"} className="w-full">
-              Aller créer des questions
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
-  const currentQuestion = questions[currentQuestionIndex];
-  const currentAnswer = selectedAnswers[currentQuestion.id] || "";
-  const isAnswered = !!currentAnswer;
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
-  const allQuestionsAnswered = questions.every(q => selectedAnswers[q.id]);
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Répondre au quiz</h1>
-      
-      {!quizCompleted ? (
-        <>
-          <div className="mb-8">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Question {currentQuestionIndex + 1} sur {questions.length}</span>
-              <span className="text-sm font-medium">{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} className="w-full" />
-          </div>
-          
-          <Card className="max-w-3xl mx-auto">
-            <CardHeader>
-              <CardTitle>Question {currentQuestionIndex + 1}</CardTitle>
-              <CardDescription>{currentQuestion.text}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup 
-                value={currentAnswer}
-                onValueChange={handleAnswerSelect}
-                className="space-y-3"
-              >
-                {currentQuestion.options.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2">
-                    <RadioGroupItem value={option.id} id={`option-${option.id}`} />
-                    <Label htmlFor={`option-${option.id}`}>{option.text}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={handlePrevious}
-                disabled={currentQuestionIndex === 0}
-              >
-                Précédent
-              </Button>
-              
-              {isLastQuestion ? (
-                <Button 
-                  onClick={handleSubmit}
-                  disabled={!allQuestionsAnswered}
-                >
-                  Terminer le quiz
-                </Button>
-              ) : (
-                <Button 
-                  onClick={handleNext}
-                  disabled={!isAnswered}
-                >
-                  Suivant
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        </>
-      ) : (
-        <Card className="max-w-3xl mx-auto">
-          <CardHeader>
-            <CardTitle>Résultats du quiz</CardTitle>
-            <CardDescription>
-              Votre score final est de {score} sur 20 points.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Progress 
-                value={(score! / 20) * 100} 
-                className="w-full h-4"
-              />
-              
-              <div className="text-center text-xl font-semibold mt-4">
-                {score! >= 15 ? (
-                  <p className="text-green-600">Excellent ! Vous maîtrisez bien les concepts.</p>
-                ) : score! >= 10 ? (
-                  <p className="text-yellow-600">Bon travail ! Il y a encore quelques points à améliorer.</p>
-                ) : (
-                  <p className="text-red-600">Vous devriez revoir certains concepts fondamentaux.</p>
-                )}
-              </div>
-            </div>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Résultats des évaluations</h1>
+        {isAdmin && (
+          <Button 
+            variant="outline" 
+            onClick={exportToCSV}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Exporter en CSV
+          </Button>
+        )}
+      </div>
+
+      {!isAdmin ? (
+        <Card className="mb-8">
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">
+              Les résultats détaillés ne sont visibles que par l'administrateur.
+            </p>
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <Button onClick={resetQuiz}>
-              Recommencer le quiz
-            </Button>
-          </CardFooter>
         </Card>
+      ) : userAnswers.length === 0 ? (
+        <Card className="mb-8">
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">
+              Aucun résultat d'évaluation n'a encore été enregistré.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6">
+          {userAnswers.map((userAnswer) => (
+            <Card key={userAnswer.id}>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>{userAnswer.username}</CardTitle>
+                  <div className="text-sm text-muted-foreground">
+                    {new Date(userAnswer.date).toLocaleString()}
+                  </div>
+                </div>
+                <CardDescription>
+                  Score: {userAnswer.score}/{userAnswer.totalScore} ({userAnswer.percentage}%)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <h3 className="font-medium">Détails des réponses:</h3>
+                  <ul className="space-y-1">
+                    {userAnswer.answers.map((answer, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <span className={`w-6 h-6 flex items-center justify-center rounded-full ${answer.isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {answer.isCorrect ? '✓' : '✗'}
+                        </span>
+                        <span>Question {index + 1}: {answer.userAnswer}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
