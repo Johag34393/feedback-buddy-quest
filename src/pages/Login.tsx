@@ -32,8 +32,22 @@ import {
 import { Trash2, AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
+// Define types for our access codes and OTP codes
+interface UserDetails {
+  role: string;
+  name: string;
+}
+
+interface AccessCodes {
+  [key: string]: UserDetails;
+}
+
+interface OTPCodes {
+  [key: string]: UserDetails;
+}
+
 // Initialize access codes
-const initializeAccessCodes = () => {
+const initializeAccessCodes = (): AccessCodes => {
   const storedCodes = localStorage.getItem("accessCodes");
   if (storedCodes) {
     return JSON.parse(storedCodes);
@@ -46,7 +60,7 @@ const initializeAccessCodes = () => {
 };
 
 // Initialize OTP codes
-const initializeOTPCodes = () => {
+const initializeOTPCodes = (): OTPCodes => {
   const storedOTPCodes = localStorage.getItem("otpCodes");
   if (storedOTPCodes) {
     return JSON.parse(storedOTPCodes);
@@ -57,8 +71,8 @@ const initializeOTPCodes = () => {
 };
 
 const Login = () => {
-  const [ACCESS_CODES, setAccessCodes] = useState(initializeAccessCodes());
-  const [OTP_CODES, setOTPCodes] = useState(initializeOTPCodes());
+  const [ACCESS_CODES, setAccessCodes] = useState<AccessCodes>(initializeAccessCodes());
+  const [OTP_CODES, setOTPCodes] = useState<OTPCodes>(initializeOTPCodes());
   const [accessCode, setAccessCode] = useState("");
   const [useOTP, setUseOTP] = useState(false);
   const [otpValue, setOtpValue] = useState("");
@@ -69,7 +83,7 @@ const Login = () => {
   const [newOTPCode, setNewOTPCode] = useState("");
   const [newOTPName, setNewOTPName] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [codeToDelete, setCodeToDelete] = useState({ code: "", isOTP: false });
+  const [codeToDelete, setCodeToDelete] = useState<{ code: string, isOTP: boolean }>({ code: "", isOTP: false });
   const navigate = useNavigate();
 
   // Save codes to localStorage whenever they change
@@ -111,7 +125,7 @@ const Login = () => {
     }
   };
 
-  const handleSuccessfulLogin = (userDetails: { role: string, name: string }, isOTP: boolean) => {
+  const handleSuccessfulLogin = (userDetails: UserDetails, isOTP: boolean) => {
     // Store user information in localStorage
     localStorage.setItem("user", JSON.stringify({
       role: userDetails.role,
