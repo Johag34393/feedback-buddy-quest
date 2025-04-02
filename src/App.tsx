@@ -12,6 +12,7 @@ import MessageCollection from "./pages/MessageCollection";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Deployment from "./pages/Deployment";
+import AccessCodeManager from "./pages/AccessCodeManager";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
@@ -75,6 +76,11 @@ const App = () => {
               <Route path="deployment" element={
                 <ProtectedRoute requireAdmin={true}>
                   <Deployment />
+                </ProtectedRoute>
+              } />
+              <Route path="access-codes" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AccessCodeManager />
                 </ProtectedRoute>
               } />
             </Route>

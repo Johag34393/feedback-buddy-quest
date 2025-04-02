@@ -9,7 +9,8 @@ import {
   LogOut, 
   FilePenLine,
   QrCode,
-  User
+  User,
+  KeyRound
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -56,6 +57,12 @@ const CustomNavigation = () => {
       path: "/deployment",
       label: "Déploiement",
       icon: <QrCode className="w-4 h-4" />,
+      admin: true
+    },
+    {
+      path: "/access-codes",
+      label: "Codes d'accès",
+      icon: <KeyRound className="w-4 h-4" />,
       admin: true
     },
   ];
