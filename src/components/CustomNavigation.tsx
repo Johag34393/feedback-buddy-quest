@@ -10,7 +10,8 @@ import {
   FilePenLine,
   QrCode,
   User,
-  KeyRound
+  KeyRound,
+  ClipboardCheck
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,9 +37,9 @@ const CustomNavigation = () => {
       admin: true
     },
     {
-      path: "/answers",
-      label: "Réponses",
-      icon: <FilePenLine className="w-4 h-4" />,
+      path: "/notes",
+      label: "Notes",
+      icon: <ClipboardCheck className="w-4 h-4" />,
       admin: false
     },
     {

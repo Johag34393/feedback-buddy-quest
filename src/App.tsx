@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import QuestionCreator from "./pages/QuestionCreator";
-import Answers from "./pages/Answers";
+import Notes from "./pages/Notes";
 import Revision from "./pages/Revision";
 import MessageCollection from "./pages/MessageCollection";
 import NotFound from "./pages/NotFound";
@@ -17,7 +16,6 @@ import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 
-// Protection de route avec vérification d'authentification
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const userString = localStorage.getItem("user");
   
@@ -64,13 +62,13 @@ const App = () => {
                 <Index />
               </ProtectedRoute>
             }>
-              <Route index element={<Navigate to="/questions" replace />} />
+              <Route index element={<Navigate to="/notes" replace />} />
               <Route path="questions" element={
                 <ProtectedRoute requireAdmin={true}>
                   <QuestionCreator />
                 </ProtectedRoute>
               } />
-              <Route path="answers" element={<Answers />} />
+              <Route path="notes" element={<Notes />} />
               <Route path="revision" element={<Revision />} />
               <Route path="messages" element={<MessageCollection />} />
               <Route path="deployment" element={
