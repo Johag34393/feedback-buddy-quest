@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { 
@@ -12,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Clock } from "lucide-react";
+import { Clock, CheckCircle, AlertCircle } from "lucide-react";
 
 interface QuestionOption {
   id: string;
@@ -74,6 +75,35 @@ const Quiz = () => {
       return () => clearInterval(timer);
     }
   }, [quizCompleted, selectedSet]);
+
+  // Format time as MM:SS
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
+
+  const handleNext = () => {
+    if (selectedSet && currentQuestionIndex < selectedSet.questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  const handleAnswerSelect = (value: string) => {
+    if (!selectedSet) return;
+    
+    const currentQuestion = selectedSet.questions[currentQuestionIndex];
+    setSelectedAnswers({
+      ...selectedAnswers,
+      [currentQuestion.id]: value
+    });
+  };
 
   const calculateScore = () => {
     if (!selectedSet) return 0;
@@ -284,29 +314,72 @@ const Quiz = () => {
           <CardHeader>
             <CardTitle>Résultats du quiz</CardTitle>
             <CardDescription>
-              Votre score final est de {score} sur {selectedSet.questions.length * 2} points.
+              Évaluation terminée. Votre note finale est affichée ci-dessous.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
+              <div className="flex flex-col items-center justify-center py-6 border-2 rounded-lg">
+                <h2 className="text-4xl font-bold mb-2">{score} / {selectedSet.questions.length * 2}</h2>
+                <p className="text-lg text-gray-600">points obtenus</p>
+              </div>
+              
               <Progress 
                 value={(score! / (selectedSet.questions.length * 2)) * 100} 
                 className="w-full h-4"
               />
               
-              <div className="text-center text-xl font-semibold mt-4">
+              <div className="flex items-center justify-center gap-2 p-4 rounded-lg mt-4 text-lg font-medium
+                ${score! >= selectedSet.questions.length * 1.5 ? 'bg-green-100 text-green-800' : 
+                  score! >= selectedSet.questions.length ? 'bg-yellow-100 text-yellow-800' : 
+                  'bg-red-100 text-red-800'}">
                 {score! >= selectedSet.questions.length * 1.5 ? (
-                  <p className="text-green-600">Excellent ! Vous maîtrisez bien les concepts.</p>
+                  <>
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <span>Excellent ! Vous maîtrisez bien les concepts.</span>
+                  </>
                 ) : score! >= selectedSet.questions.length ? (
-                  <p className="text-yellow-600">Bon travail ! Il y a encore quelques points à améliorer.</p>
+                  <>
+                    <CheckCircle className="w-6 h-6 text-yellow-600" />
+                    <span>Bon travail ! Il y a encore quelques points à améliorer.</span>
+                  </>
                 ) : (
-                  <p className="text-red-600">Vous devriez revoir certains concepts fondamentaux.</p>
+                  <>
+                    <AlertCircle className="w-6 h-6 text-red-600" />
+                    <span>Vous devriez revoir certains concepts fondamentaux.</span>
+                  </>
                 )}
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">Détails de l'évaluation:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-lg border p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="font-medium">Réponses correctes</span>
+                    </div>
+                    <div className="text-2xl font-bold">
+                      {selectedSet.questions.filter(q => selectedAnswers[q.id] === q.correctAnswerId).length}
+                      <span className="text-sm font-normal text-gray-500 ml-1">/ {selectedSet.questions.length}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="w-5 h-5 text-red-500" />
+                      <span className="font-medium">Réponses incorrectes</span>
+                    </div>
+                    <div className="text-2xl font-bold">
+                      {selectedSet.questions.filter(q => selectedAnswers[q.id] && selectedAnswers[q.id] !== q.correctAnswerId).length}
+                      <span className="text-sm font-normal text-gray-500 ml-1">/ {selectedSet.questions.length}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button onClick={resetQuiz}>
+            <Button onClick={resetQuiz} className="w-full sm:w-auto">
               Recommencer le quiz
             </Button>
           </CardFooter>
