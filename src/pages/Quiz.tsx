@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { 
@@ -45,14 +44,12 @@ const Quiz = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Load question sets from localStorage
   useEffect(() => {
     const savedQuestionSets = localStorage.getItem("questionSets");
     if (savedQuestionSets) {
       const parsedSets = JSON.parse(savedQuestionSets);
       setQuestionSets(parsedSets);
       
-      // If there are sets with questions, select the first one
       const setsWithQuestions = parsedSets.filter((set: QuestionSet) => set.questions.length > 0);
       if (setsWithQuestions.length > 0) {
         setSelectedSet(setsWithQuestions[0]);
@@ -61,7 +58,6 @@ const Quiz = () => {
     setIsLoading(false);
   }, []);
 
-  // Timer effect
   useEffect(() => {
     if (!quizCompleted && selectedSet) {
       const timer = setInterval(() => {
@@ -78,50 +74,6 @@ const Quiz = () => {
       return () => clearInterval(timer);
     }
   }, [quizCompleted, selectedSet]);
-
-  const handleTimeUp = () => {
-    if (!selectedSet) return;
-    
-    // Auto-submit the quiz when time is up
-    const finalScore = calculateScore();
-    setScore(finalScore);
-    setQuizCompleted(true);
-    
-    toast({
-      title: "Temps écoulé !",
-      description: `Votre score final est de ${finalScore}/${selectedSet.questions.length * 2} points`,
-      variant: "destructive",
-    });
-  };
-
-  // Format time as MM:SS
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
-  };
-
-  const handleNext = () => {
-    if (selectedSet && currentQuestionIndex < selectedSet.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
-  };
-
-  const handleAnswerSelect = (value: string) => {
-    if (!selectedSet) return;
-    
-    const currentQuestion = selectedSet.questions[currentQuestionIndex];
-    setSelectedAnswers({
-      ...selectedAnswers,
-      [currentQuestion.id]: value
-    });
-  };
 
   const calculateScore = () => {
     if (!selectedSet) return 0;
@@ -150,6 +102,20 @@ const Quiz = () => {
     });
   };
 
+  const handleTimeUp = () => {
+    if (!selectedSet) return;
+    
+    const finalScore = calculateScore();
+    setScore(finalScore);
+    setQuizCompleted(true);
+    
+    toast({
+      title: "Temps écoulé !",
+      description: `Votre score final est de ${finalScore}/${selectedSet.questions.length * 2} points`,
+      variant: "destructive",
+    });
+  };
+
   const resetQuiz = () => {
     setCurrentQuestionIndex(0);
     setSelectedAnswers({});
@@ -166,7 +132,6 @@ const Quiz = () => {
     }
   };
 
-  // If still loading or no question sets available
   if (isLoading) {
     return (
       <div className="container mx-auto py-8">
@@ -185,7 +150,6 @@ const Quiz = () => {
     );
   }
 
-  // No question sets available
   if (questionSets.length === 0 || !selectedSet) {
     return (
       <div className="container mx-auto py-8">
@@ -207,7 +171,6 @@ const Quiz = () => {
     );
   }
 
-  // If quiz is available and ready to take
   const currentQuestion = selectedSet.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / selectedSet.questions.length) * 100;
   const currentAnswer = selectedAnswers[currentQuestion.id] || "";
@@ -215,14 +178,12 @@ const Quiz = () => {
   const isLastQuestion = currentQuestionIndex === selectedSet.questions.length - 1;
   const allQuestionsAnswered = selectedSet.questions.every(q => selectedAnswers[q.id]);
 
-  // Calculate timer progress percentage
   const timerProgress = (timeRemaining / 189) * 100;
 
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6">Quiz de formation</h1>
       
-      {/* Question set selection */}
       {questionSets.length > 1 && !quizCompleted && (
         <Card className="max-w-3xl mx-auto mb-6">
           <CardHeader>
