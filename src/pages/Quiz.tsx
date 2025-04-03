@@ -15,27 +15,55 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Clock } from "lucide-react";
 
-interface Question {
-  id: number;
+interface QuestionOption {
+  id: string;
   text: string;
-  options: {
-    id: string;
-    text: string;
-  }[];
-  correctAnswer: string;
+}
+
+interface Question {
+  id: string;
+  text: string;
+  options: QuestionOption[];
+  correctAnswerId: string;
+}
+
+interface QuestionSet {
+  id: string;
+  title: string;
+  questions: Question[];
+  createdAt: string;
 }
 
 const Quiz = () => {
+  const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
+  const [selectedSet, setSelectedSet] = useState<QuestionSet | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [score, setScore] = useState<number | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(189); // 189 seconds timer
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  // Load question sets from localStorage
   useEffect(() => {
-    // Only start the timer if the quiz hasn't been completed
-    if (!quizCompleted) {
+    const savedQuestionSets = localStorage.getItem("questionSets");
+    if (savedQuestionSets) {
+      const parsedSets = JSON.parse(savedQuestionSets);
+      setQuestionSets(parsedSets);
+      
+      // If there are sets with questions, select the first one
+      const setsWithQuestions = parsedSets.filter((set: QuestionSet) => set.questions.length > 0);
+      if (setsWithQuestions.length > 0) {
+        setSelectedSet(setsWithQuestions[0]);
+      }
+    }
+    setIsLoading(false);
+  }, []);
+
+  // Timer effect
+  useEffect(() => {
+    if (!quizCompleted && selectedSet) {
       const timer = setInterval(() => {
         setTimeRemaining(prevTime => {
           if (prevTime <= 1) {
@@ -49,9 +77,11 @@ const Quiz = () => {
       
       return () => clearInterval(timer);
     }
-  }, [quizCompleted]);
+  }, [quizCompleted, selectedSet]);
 
   const handleTimeUp = () => {
+    if (!selectedSet) return;
+    
     // Auto-submit the quiz when time is up
     const finalScore = calculateScore();
     setScore(finalScore);
@@ -59,7 +89,7 @@ const Quiz = () => {
     
     toast({
       title: "Temps écoulé !",
-      description: `Votre score final est de ${finalScore}/${questions.length * 2} points`,
+      description: `Votre score final est de ${finalScore}/${selectedSet.questions.length * 2} points`,
       variant: "destructive",
     });
   };
@@ -71,231 +101,8 @@ const Quiz = () => {
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
-  const questions: Question[] = [
-    {
-      id: 1,
-      text: "Quelle est la meilleure approche face à un client mécontent ?",
-      options: [
-        { id: "a", text: "L'ignorer jusqu'à ce qu'il se calme" },
-        { id: "b", text: "Lui demander de rappeler plus tard" },
-        { id: "c", text: "L'écouter activement et valider ses préoccupations" },
-        { id: "d", text: "Transférer immédiatement l'appel à un supérieur" }
-      ],
-      correctAnswer: "c"
-    },
-    {
-      id: 2,
-      text: "Comment gérer une situation où vous ne connaissez pas la réponse à une question d'un client ?",
-      options: [
-        { id: "a", text: "Inventer une réponse pour paraître compétent" },
-        { id: "b", text: "Admettre que vous ne savez pas et promettre de trouver l'information" },
-        { id: "c", text: "Changer de sujet discrètement" },
-        { id: "d", text: "Dire au client de chercher lui-même sur internet" }
-      ],
-      correctAnswer: "b"
-    },
-    {
-      id: 3,
-      text: "Quelle est la première étape pour résoudre un problème client ?",
-      options: [
-        { id: "a", text: "Proposer immédiatement une solution" },
-        { id: "b", text: "Blâmer le département responsable" },
-        { id: "c", text: "Identifier clairement la nature du problème" },
-        { id: "d", text: "Vérifier si d'autres clients ont le même problème" }
-      ],
-      correctAnswer: "c"
-    },
-    {
-      id: 4,
-      text: "Quel est le meilleur moyen de conclure une interaction avec un client ?",
-      options: [
-        { id: "a", text: "Demander s'il a d'autres questions ou besoins" },
-        { id: "b", text: "Terminer rapidement pour passer au client suivant" },
-        { id: "c", text: "Proposer systématiquement des produits supplémentaires" },
-        { id: "d", text: "Dire au revoir sans plus de formalités" }
-      ],
-      correctAnswer: "a"
-    },
-    {
-      id: 5,
-      text: "Comment prioriser les demandes multiples de clients ?",
-      options: [
-        { id: "a", text: "Traiter les demandes par ordre d'arrivée" },
-        { id: "b", text: "Prioriser les clients qui semblent les plus importants" },
-        { id: "c", text: "Évaluer l'urgence et l'impact de chaque demande" },
-        { id: "d", text: "Déléguer toutes les demandes à d'autres collègues" }
-      ],
-      correctAnswer: "c"
-    },
-    {
-      id: 6,
-      text: "Quelle est la meilleure façon de communiquer des nouvelles négatives à un client ?",
-      options: [
-        { id: "a", text: "Par email, pour éviter la confrontation directe" },
-        { id: "b", text: "Directement, avec empathie et en proposant des alternatives" },
-        { id: "c", text: "En minimisant le problème pour qu'il paraisse moins grave" },
-        { id: "d", text: "En laissant un autre service s'en charger" }
-      ],
-      correctAnswer: "b"
-    },
-    {
-      id: 7,
-      text: "Comment réagir face à un client qui vous insulte ?",
-      options: [
-        { id: "a", text: "Répondre sur le même ton pour établir votre autorité" },
-        { id: "b", text: "Raccrocher ou mettre fin à la conversation" },
-        { id: "c", text: "Rester calme et professionnel, puis rediriger vers le problème initial" },
-        { id: "d", text: "Menacer de signaler son comportement à sa hiérarchie" }
-      ],
-      correctAnswer: "c"
-    },
-    {
-      id: 8,
-      text: "Quelle compétence est la plus importante pour un agent de service client ?",
-      options: [
-        { id: "a", text: "La capacité à parler rapidement" },
-        { id: "b", text: "L'écoute active" },
-        { id: "c", text: "La connaissance technique approfondie" },
-        { id: "d", text: "La capacité à convaincre les clients d'acheter plus" }
-      ],
-      correctAnswer: "b"
-    },
-    {
-      id: 9,
-      text: "Comment gérer efficacement votre temps lors de périodes de forte affluence ?",
-      options: [
-        { id: "a", text: "Réduire le temps passé avec chaque client" },
-        { id: "b", text: "Ignorer les demandes moins urgentes" },
-        { id: "c", text: "Prioriser et organiser les tâches selon leur importance" },
-        { id: "d", text: "Travailler plus vite sans prendre de pause" }
-      ],
-      correctAnswer: "c"
-    },
-    {
-      id: 10,
-      text: "Quel est le principal objectif d'un suivi client après la résolution d'un problème ?",
-      options: [
-        { id: "a", text: "Vérifier que le problème ne réapparaît pas" },
-        { id: "b", text: "Avoir l'occasion de vendre d'autres produits" },
-        { id: "c", text: "Respecter la procédure de l'entreprise" },
-        { id: "d", text: "Montrer à votre manager que vous êtes méthodique" }
-      ],
-      correctAnswer: "a"
-    },
-    {
-      id: 11,
-      text: "Quelle est la meilleure façon d'obtenir des retours clients sur la qualité de service ?",
-      options: [
-        { id: "a", text: "Insister pour qu'ils complètent un long sondage" },
-        { id: "b", text: "Leur demander directement mais brièvement leur niveau de satisfaction" },
-        { id: "c", text: "Supposer que l'absence de plainte signifie satisfaction" },
-        { id: "d", text: "Leur envoyer de multiples emails de suivi" }
-      ],
-      correctAnswer: "b"
-    },
-    {
-      id: 12,
-      text: "Comment maintenir un bon équilibre entre efficacité et qualité de service ?",
-      options: [
-        { id: "a", text: "Prioriser toujours l'efficacité, les clients veulent des solutions rapides" },
-        { id: "b", text: "Prioriser toujours la qualité, peu importe le temps nécessaire" },
-        { id: "c", text: "Adapter l'approche selon la complexité de chaque situation" },
-        { id: "d", text: "Suivre strictement les scripts d'appel sans adaptation" }
-      ],
-      correctAnswer: "c"
-    },
-    {
-      id: 13,
-      text: "Quel est le meilleur moyen d'améliorer continuellement vos compétences de service client ?",
-      options: [
-        { id: "a", text: "Se fier uniquement à votre expérience personnelle" },
-        { id: "b", text: "Demander régulièrement des retours et suivre des formations" },
-        { id: "c", text: "Observer uniquement les agents les plus performants" },
-        { id: "d", text: "Lire des livres théoriques sur le service client" }
-      ],
-      correctAnswer: "b"
-    },
-    {
-      id: 14,
-      text: "Comment gérer une situation où un client demande quelque chose qui va à l'encontre de la politique de l'entreprise ?",
-      options: [
-        { id: "a", text: "Faire une exception pour éviter les problèmes" },
-        { id: "b", text: "Refuser catégoriquement sans explication" },
-        { id: "c", text: "Expliquer la politique et proposer des alternatives acceptables" },
-        { id: "d", text: "Transférer immédiatement à un manager" }
-      ],
-      correctAnswer: "c"
-    },
-    {
-      id: 15,
-      text: "Quelle approche est préférable lors de la gestion d'un client récurrent ayant des problèmes similaires ?",
-      options: [
-        { id: "a", text: "Lui conseiller de changer de produit ou service" },
-        { id: "b", text: "L'orienter vers l'auto-assistance pour ne plus avoir à traiter ses demandes" },
-        { id: "c", text: "Analyser la cause profonde du problème pour trouver une solution permanente" },
-        { id: "d", text: "Suggérer qu'il utilise mal le produit" }
-      ],
-      correctAnswer: "c"
-    },
-    {
-      id: 16,
-      text: "Comment utiliser efficacement les outils CRM dans le service client ?",
-      options: [
-        { id: "a", text: "Enregistrer le minimum d'informations pour gagner du temps" },
-        { id: "b", text: "Documenter en détail chaque interaction pour assurer un suivi cohérent" },
-        { id: "c", text: "Se concentrer uniquement sur les champs obligatoires" },
-        { id: "d", text: "Déléguer la saisie des données à un autre service" }
-      ],
-      correctAnswer: "b"
-    },
-    {
-      id: 17,
-      text: "Quelle est la meilleure façon de gérer les attentes irréalistes d'un client ?",
-      options: [
-        { id: "a", text: "Promettre de faire de votre mieux, même si c'est impossible" },
-        { id: "b", text: "Être honnête sur ce qui est réalisable et proposer des options viables" },
-        { id: "c", text: "Dire oui à tout puis laisser un autre service gérer les complications" },
-        { id: "d", text: "Suggérer au client de revoir ses attentes à la baisse" }
-      ],
-      correctAnswer: "b"
-    },
-    {
-      id: 18,
-      text: "Comment collaborer efficacement avec d'autres départements pour résoudre les problèmes clients ?",
-      options: [
-        { id: "a", text: "Transférer simplement le problème et oublier" },
-        { id: "b", text: "Communiquer clairement le problème et suivre sa résolution" },
-        { id: "c", text: "Insister pour que le client contacte lui-même l'autre département" },
-        { id: "d", text: "Blâmer les autres départements pour les délais" }
-      ],
-      correctAnswer: "b"
-    },
-    {
-      id: 19,
-      text: "Quelle est l'importance de la cohérence dans le service client ?",
-      options: [
-        { id: "a", text: "Peu importante, chaque situation est unique" },
-        { id: "b", text: "Cruciale pour la confiance et la fiabilité perçue" },
-        { id: "c", text: "Secondaire par rapport à la rapidité" },
-        { id: "d", text: "Importante uniquement pour les clients VIP" }
-      ],
-      correctAnswer: "b"
-    },
-    {
-      id: 20,
-      text: "Comment maintenir une attitude positive même après avoir traité des clients difficiles toute la journée ?",
-      options: [
-        { id: "a", text: "Éviter les clients difficiles en fin de journée" },
-        { id: "b", text: "Pratiquer des techniques de gestion du stress et faire de courtes pauses" },
-        { id: "c", text: "Raccourcir les appels pour minimiser l'exposition aux situations stressantes" },
-        { id: "d", text: "Transférer les clients difficiles à des collègues" }
-      ],
-      correctAnswer: "b"
-    }
-  ];
-
   const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
+    if (selectedSet && currentQuestionIndex < selectedSet.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
@@ -307,17 +114,22 @@ const Quiz = () => {
   };
 
   const handleAnswerSelect = (value: string) => {
+    if (!selectedSet) return;
+    
+    const currentQuestion = selectedSet.questions[currentQuestionIndex];
     setSelectedAnswers({
       ...selectedAnswers,
-      [questions[currentQuestionIndex].id]: value
+      [currentQuestion.id]: value
     });
   };
 
   const calculateScore = () => {
+    if (!selectedSet) return 0;
+    
     let totalScore = 0;
     
-    questions.forEach(question => {
-      if (selectedAnswers[question.id] === question.correctAnswer) {
+    selectedSet.questions.forEach(question => {
+      if (selectedAnswers[question.id] === question.correctAnswerId) {
         totalScore += 2; // Chaque réponse correcte vaut 2 points
       }
     });
@@ -326,13 +138,15 @@ const Quiz = () => {
   };
 
   const handleSubmit = () => {
+    if (!selectedSet) return;
+    
     const finalScore = calculateScore();
     setScore(finalScore);
     setQuizCompleted(true);
     
     toast({
       title: "Quiz terminé !",
-      description: `Votre score: ${finalScore}/${questions.length * 2} points`,
+      description: `Votre score: ${finalScore}/${selectedSet.questions.length * 2} points`,
     });
   };
 
@@ -344,44 +158,118 @@ const Quiz = () => {
     setTimeRemaining(189); // Reset timer
   };
 
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
-  const currentQuestion = questions[currentQuestionIndex];
+  const selectQuestionSet = (setId: string) => {
+    const set = questionSets.find(s => s.id === setId);
+    if (set) {
+      setSelectedSet(set);
+      resetQuiz();
+    }
+  };
+
+  // If still loading or no question sets available
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8">
+        <h1 className="text-3xl font-bold mb-8">Quiz de formation</h1>
+        <Card className="max-w-3xl mx-auto">
+          <CardHeader>
+            <CardTitle>Chargement du quiz...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // No question sets available
+  if (questionSets.length === 0 || !selectedSet) {
+    return (
+      <div className="container mx-auto py-8">
+        <h1 className="text-3xl font-bold mb-8">Quiz de formation</h1>
+        <Card className="max-w-3xl mx-auto">
+          <CardHeader>
+            <CardTitle>Aucun quiz disponible</CardTitle>
+            <CardDescription>
+              Aucun ensemble de questions n'a été créé par l'administrateur.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center py-4 text-gray-500">
+              Veuillez contacter un administrateur pour créer un ensemble de questions.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If quiz is available and ready to take
+  const currentQuestion = selectedSet.questions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / selectedSet.questions.length) * 100;
   const currentAnswer = selectedAnswers[currentQuestion.id] || "";
   const isAnswered = !!currentAnswer;
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
-  const allQuestionsAnswered = questions.every(q => selectedAnswers[q.id]);
+  const isLastQuestion = currentQuestionIndex === selectedSet.questions.length - 1;
+  const allQuestionsAnswered = selectedSet.questions.every(q => selectedAnswers[q.id]);
 
   // Calculate timer progress percentage
   const timerProgress = (timeRemaining / 189) * 100;
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Quiz de formation</h1>
+      <h1 className="text-3xl font-bold mb-6">Quiz de formation</h1>
+      
+      {/* Question set selection */}
+      {questionSets.length > 1 && !quizCompleted && (
+        <Card className="max-w-3xl mx-auto mb-6">
+          <CardHeader>
+            <CardTitle>Sélectionner un ensemble de questions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {questionSets.filter(set => set.questions.length > 0).map(set => (
+                <Button 
+                  key={set.id}
+                  variant={selectedSet.id === set.id ? "default" : "outline"}
+                  onClick={() => selectQuestionSet(set.id)}
+                  className="justify-start overflow-hidden"
+                >
+                  {set.title} ({set.questions.length} questions)
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {!quizCompleted ? (
         <>
-          <div className="mb-8">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Question {currentQuestionIndex + 1} sur {questions.length}</span>
-              <span className="text-sm font-medium">{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} className="w-full" />
-          </div>
-          
-          <div className="mb-8">
-            <div className="flex justify-between mb-2">
-              <div className="flex items-center text-sm font-medium">
-                <Clock className="w-4 h-4 mr-2" />
-                <span className={`${timeRemaining < 30 ? 'text-red-500 font-bold' : ''}`}>
-                  Temps restant: {formatTime(timeRemaining)}
-                </span>
+          <div className="max-w-3xl mx-auto">
+            <div className="mb-6">
+              <div className="flex justify-between mb-2">
+                <span className="text-sm font-medium">Question {currentQuestionIndex + 1} sur {selectedSet.questions.length}</span>
+                <span className="text-sm font-medium">{Math.round(progress)}%</span>
               </div>
+              <Progress value={progress} className="w-full" />
             </div>
-            <Progress 
-              value={timerProgress} 
-              className={`w-full ${timeRemaining < 30 ? 'bg-red-200' : ''}`} 
-              indicatorClassName={timeRemaining < 30 ? 'bg-red-500' : undefined}
-            />
+            
+            <div className="mb-6">
+              <div className="flex justify-between mb-2">
+                <div className="flex items-center text-sm font-medium">
+                  <Clock className="w-4 h-4 mr-2" />
+                  <span className={`${timeRemaining < 30 ? 'text-red-500 font-bold' : ''}`}>
+                    Temps restant: {formatTime(timeRemaining)}
+                  </span>
+                </div>
+              </div>
+              <Progress 
+                value={timerProgress} 
+                className={`w-full ${timeRemaining < 30 ? 'bg-red-200' : ''}`}
+              />
+            </div>
           </div>
           
           <Card className="max-w-3xl mx-auto">
@@ -435,20 +323,20 @@ const Quiz = () => {
           <CardHeader>
             <CardTitle>Résultats du quiz</CardTitle>
             <CardDescription>
-              Votre score final est de {score} sur {questions.length * 2} points.
+              Votre score final est de {score} sur {selectedSet.questions.length * 2} points.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <Progress 
-                value={(score! / (questions.length * 2)) * 100} 
+                value={(score! / (selectedSet.questions.length * 2)) * 100} 
                 className="w-full h-4"
               />
               
               <div className="text-center text-xl font-semibold mt-4">
-                {score! >= questions.length * 1.5 ? (
+                {score! >= selectedSet.questions.length * 1.5 ? (
                   <p className="text-green-600">Excellent ! Vous maîtrisez bien les concepts.</p>
-                ) : score! >= questions.length ? (
+                ) : score! >= selectedSet.questions.length ? (
                   <p className="text-yellow-600">Bon travail ! Il y a encore quelques points à améliorer.</p>
                 ) : (
                   <p className="text-red-600">Vous devriez revoir certains concepts fondamentaux.</p>
