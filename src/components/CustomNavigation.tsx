@@ -11,7 +11,8 @@ import {
   QrCode,
   User,
   KeyRound,
-  ClipboardCheck
+  ClipboardCheck,
+  Clock
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,6 +36,12 @@ const CustomNavigation = () => {
       label: "Questions",
       icon: <FileQuestion className="w-4 h-4" />,
       admin: true
+    },
+    {
+      path: "/quiz",
+      label: "Quiz",
+      icon: <Clock className="w-4 h-4" />,
+      admin: false
     },
     {
       path: "/notes",

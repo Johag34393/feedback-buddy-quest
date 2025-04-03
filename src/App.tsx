@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Deployment from "./pages/Deployment";
 import AccessCodeManager from "./pages/AccessCodeManager";
+import Quiz from "./pages/Quiz";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
@@ -68,6 +70,7 @@ const App = () => {
                   <QuestionCreator />
                 </ProtectedRoute>
               } />
+              <Route path="quiz" element={<Quiz />} />
               <Route path="notes" element={<Notes />} />
               <Route path="revision" element={<Revision />} />
               <Route path="messages" element={<MessageCollection />} />

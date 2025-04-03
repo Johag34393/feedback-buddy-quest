@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Clock } from "lucide-react";
 
 interface Question {
   id: number;
@@ -29,7 +30,46 @@ const Quiz = () => {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [score, setScore] = useState<number | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(189); // 189 seconds timer
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Only start the timer if the quiz hasn't been completed
+    if (!quizCompleted) {
+      const timer = setInterval(() => {
+        setTimeRemaining(prevTime => {
+          if (prevTime <= 1) {
+            clearInterval(timer);
+            handleTimeUp();
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }
+  }, [quizCompleted]);
+
+  const handleTimeUp = () => {
+    // Auto-submit the quiz when time is up
+    const finalScore = calculateScore();
+    setScore(finalScore);
+    setQuizCompleted(true);
+    
+    toast({
+      title: "Temps écoulé !",
+      description: `Votre score final est de ${finalScore}/${questions.length * 2} points`,
+      variant: "destructive",
+    });
+  };
+
+  // Format time as MM:SS
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
 
   const questions: Question[] = [
     {
@@ -301,6 +341,7 @@ const Quiz = () => {
     setSelectedAnswers({});
     setScore(null);
     setQuizCompleted(false);
+    setTimeRemaining(189); // Reset timer
   };
 
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
@@ -309,6 +350,9 @@ const Quiz = () => {
   const isAnswered = !!currentAnswer;
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
   const allQuestionsAnswered = questions.every(q => selectedAnswers[q.id]);
+
+  // Calculate timer progress percentage
+  const timerProgress = (timeRemaining / 189) * 100;
 
   return (
     <div className="container mx-auto py-8">
@@ -322,6 +366,22 @@ const Quiz = () => {
               <span className="text-sm font-medium">{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="w-full" />
+          </div>
+          
+          <div className="mb-8">
+            <div className="flex justify-between mb-2">
+              <div className="flex items-center text-sm font-medium">
+                <Clock className="w-4 h-4 mr-2" />
+                <span className={`${timeRemaining < 30 ? 'text-red-500 font-bold' : ''}`}>
+                  Temps restant: {formatTime(timeRemaining)}
+                </span>
+              </div>
+            </div>
+            <Progress 
+              value={timerProgress} 
+              className={`w-full ${timeRemaining < 30 ? 'bg-red-200' : ''}`} 
+              indicatorClassName={timeRemaining < 30 ? 'bg-red-500' : undefined}
+            />
           </div>
           
           <Card className="max-w-3xl mx-auto">
