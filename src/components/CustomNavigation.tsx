@@ -24,12 +24,6 @@ const CustomNavigation = () => {
   
   const isAdmin = user?.role === "admin";
   
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    toast.success("Déconnexion réussie");
-    navigate("/login");
-  };
-  
   const menuItems = [
     {
       path: "/questions",
@@ -47,7 +41,7 @@ const CustomNavigation = () => {
       path: "/notes",
       label: "Notes",
       icon: <ClipboardCheck className="w-4 h-4" />,
-      admin: false
+      admin: true
     },
     {
       path: "/revision",
@@ -78,6 +72,12 @@ const CustomNavigation = () => {
   const filteredMenuItems = menuItems.filter(item => 
     !item.admin || (item.admin && isAdmin)
   );
+  
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    toast.success("Déconnexion réussie");
+    navigate("/login");
+  };
   
   return (
     <header className="bg-white shadow-sm">

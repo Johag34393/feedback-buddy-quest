@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children, requireAdmin = false }) => {
+const ProtectedRoute = ({ children, requireAdmin = false, visitorAllowed = false }) => {
   const userString = localStorage.getItem("user");
   
   if (!userString) {
@@ -27,8 +27,14 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   
   const user = JSON.parse(userString);
   
+  // Si la route requiert des droits d'admin et que l'utilisateur n'est pas admin
   if (requireAdmin && user.role !== "admin") {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/quiz" replace />;
+  }
+  
+  // Si la route n'est pas autorisée pour les visiteurs et que l'utilisateur n'est pas admin
+  if (!visitorAllowed && user.role !== "admin") {
+    return <Navigate to="/quiz" replace />;
   }
   
   return children;
@@ -64,16 +70,32 @@ const App = () => {
                 <Index />
               </ProtectedRoute>
             }>
-              <Route index element={<Navigate to="/notes" replace />} />
+              <Route index element={<Navigate to="/quiz" replace />} />
               <Route path="questions" element={
                 <ProtectedRoute requireAdmin={true}>
                   <QuestionCreator />
                 </ProtectedRoute>
               } />
-              <Route path="quiz" element={<Quiz />} />
-              <Route path="notes" element={<Notes />} />
-              <Route path="revision" element={<Revision />} />
-              <Route path="messages" element={<MessageCollection />} />
+              <Route path="quiz" element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <Quiz />
+                </ProtectedRoute>
+              } />
+              <Route path="notes" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Notes />
+                </ProtectedRoute>
+              } />
+              <Route path="revision" element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <Revision />
+                </ProtectedRoute>
+              } />
+              <Route path="messages" element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <MessageCollection />
+                </ProtectedRoute>
+              } />
               <Route path="deployment" element={
                 <ProtectedRoute requireAdmin={true}>
                   <Deployment />
