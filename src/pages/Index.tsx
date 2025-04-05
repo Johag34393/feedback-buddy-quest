@@ -1,10 +1,11 @@
 
 import React, { useEffect } from "react";
 import CustomNavigation from "@/components/CustomNavigation";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   
   useEffect(() => {
     // Vérifier si l'utilisateur est connecté
@@ -17,14 +18,22 @@ const Index = () => {
     // Rediriger vers la page appropriée en fonction du rôle
     const user = JSON.parse(userString);
     if (user.role === "admin") {
-      // Les administrateurs vont à la page de leur choix
+      // Les administrateurs restent sur la page actuelle
     } else {
-      // Les visiteurs sont redirigés vers la page Quiz
+      // Les visiteurs sont redirigés vers la page Quiz s'ils sont sur la page d'accueil
       if (location.pathname === "/") {
         navigate("/quiz");
       }
+      
+      // Vérifier si l'utilisateur essaie d'accéder à une page non autorisée
+      const allowedVisitorPaths = ["/quiz", "/revision", "/messages"];
+      const isAllowedPath = allowedVisitorPaths.some(path => location.pathname.startsWith(path));
+      
+      if (!isAllowedPath && location.pathname !== "/") {
+        navigate("/quiz");
+      }
     }
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   return (
     <div className="min-h-screen bg-gray-50">
