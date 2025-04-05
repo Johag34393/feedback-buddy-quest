@@ -23,8 +23,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Copy, KeyRound, Shield } from "lucide-react";
+import { Trash2, Copy, KeyRound, Shield, Edit, Save } from "lucide-react";
 
 // Réutiliser les types définis dans Login.tsx
 interface UserDetails {
@@ -51,6 +59,14 @@ const AccessCodeManager = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [codeToDelete, setCodeToDelete] = useState<{ code: string, isOTP: boolean }>({ code: "", isOTP: false });
   const [activeTab, setActiveTab] = useState("access");
+  
+  // États pour l'édition
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingCode, setEditingCode] = useState("");
+  const [editingIsOTP, setEditingIsOTP] = useState(false);
+  const [editingName, setEditingName] = useState("");
+  const [editingRole, setEditingRole] = useState("visitor");
+  const [editingOTPCode, setEditingOTPCode] = useState("");
 
   // Charger les codes depuis localStorage
   useEffect(() => {
@@ -176,6 +192,88 @@ const AccessCodeManager = () => {
     
     setShowDeleteDialog(false);
   };
+  
+  // Nouvelles fonctions pour l'édition
+  const handleEditCode = (code: string, isOTP: boolean) => {
+    if (isOTP) {
+      const details = OTP_CODES[code];
+      setEditingCode(code);
+      setEditingIsOTP(true);
+      setEditingName(details.name);
+      setEditingOTPCode(code);
+    } else {
+      const details = ACCESS_CODES[code];
+      setEditingCode(code);
+      setEditingIsOTP(false);
+      setEditingName(details.name);
+      setEditingRole(details.role);
+    }
+    setShowEditDialog(true);
+  };
+  
+  const confirmEditCode = () => {
+    if (!editingName.trim()) {
+      toast.error("Le nom ne peut pas être vide");
+      return;
+    }
+    
+    if (editingIsOTP) {
+      // Vérification pour les codes OTP
+      if (editingOTPCode.length !== 4 || !/^\d+$/.test(editingOTPCode)) {
+        toast.error("Le code OTP doit être composé de 4 chiffres");
+        return;
+      }
+      
+      // Si le code a changé, vérifier qu'il n'existe pas déjà
+      if (editingOTPCode !== editingCode && OTP_CODES[editingOTPCode]) {
+        toast.error("Ce code OTP existe déjà");
+        return;
+      }
+      
+      // Supprimer l'ancien code et ajouter le nouveau
+      if (editingOTPCode !== editingCode) {
+        setOTPCodes(prevCodes => {
+          const newCodes = { ...prevCodes };
+          const details = { ...newCodes[editingCode] };
+          delete newCodes[editingCode];
+          details.name = editingName;
+          newCodes[editingOTPCode] = details;
+          return newCodes;
+        });
+      } else {
+        // Mettre à jour uniquement le nom
+        setOTPCodes(prevCodes => {
+          const newCodes = { ...prevCodes };
+          newCodes[editingCode] = { 
+            ...newCodes[editingCode], 
+            name: editingName 
+          };
+          return newCodes;
+        });
+      }
+      
+      toast.success("Code OTP modifié avec succès");
+    } else {
+      // Mise à jour pour les codes d'accès réguliers
+      if (editingCode === "ADMIN2024" && editingRole !== "admin") {
+        toast.error("Impossible de changer le rôle du code administrateur");
+        return;
+      }
+      
+      setAccessCodes(prevCodes => {
+        const newCodes = { ...prevCodes };
+        newCodes[editingCode] = { 
+          role: editingRole, 
+          name: editingName 
+        };
+        return newCodes;
+      });
+      
+      toast.success("Code d'accès modifié avec succès");
+    }
+    
+    setShowEditDialog(false);
+  };
 
   return (
     <div className="container mx-auto py-6 px-4">
@@ -270,7 +368,7 @@ const AccessCodeManager = () => {
                         <TableHead>Code</TableHead>
                         <TableHead>Nom</TableHead>
                         <TableHead>Rôle</TableHead>
-                        <TableHead>Action</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -285,14 +383,24 @@ const AccessCodeManager = () => {
                                 variant="ghost" 
                                 size="icon" 
                                 onClick={() => copyToClipboard(code)}
+                                title="Copier le code"
                               >
                                 <Copy className="h-4 w-4 text-gray-500" />
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
+                                onClick={() => handleEditCode(code, false)}
+                                title="Modifier le code"
+                              >
+                                <Edit className="h-4 w-4 text-blue-500" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
                                 onClick={() => handleDeleteCode(code, false)}
                                 disabled={code === "ADMIN2024"}
+                                title="Supprimer le code"
                               >
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
@@ -358,7 +466,7 @@ const AccessCodeManager = () => {
                       <TableRow>
                         <TableHead>Code</TableHead>
                         <TableHead>Nom</TableHead>
-                        <TableHead>Action</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -372,13 +480,23 @@ const AccessCodeManager = () => {
                                 variant="ghost" 
                                 size="icon" 
                                 onClick={() => copyToClipboard(code)}
+                                title="Copier le code"
                               >
                                 <Copy className="h-4 w-4 text-gray-500" />
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
+                                onClick={() => handleEditCode(code, true)}
+                                title="Modifier le code"
+                              >
+                                <Edit className="h-4 w-4 text-blue-500" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
                                 onClick={() => handleDeleteCode(code, true)}
+                                title="Supprimer le code"
                               >
                                 <Trash2 className="h-4 w-4 text-red-500" />
                               </Button>
@@ -413,6 +531,94 @@ const AccessCodeManager = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Dialog for editing codes */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier le code d'accès</DialogTitle>
+            <DialogDescription>
+              Modifiez les détails du code {editingIsOTP ? "OTP" : "d'accès"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {editingIsOTP ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Code OTP (4 chiffres)</Label>
+                  <Input
+                    placeholder="1234"
+                    value={editingOTPCode}
+                    onChange={(e) => setEditingOTPCode(e.target.value)}
+                    maxLength={4}
+                    disabled={editingCode === "1234" && Object.keys(OTP_CODES).length === 1}
+                  />
+                  {editingCode === "1234" && Object.keys(OTP_CODES).length === 1 && (
+                    <p className="text-xs text-amber-600">Le code OTP par défaut ne peut pas être modifié</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Nom de l'utilisateur</Label>
+                  <Input
+                    placeholder="Nom de l'utilisateur"
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Code d'accès</Label>
+                  <Input
+                    value={editingCode}
+                    disabled
+                  />
+                  <p className="text-xs text-amber-600">Le code d'accès ne peut pas être modifié</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Nom de l'utilisateur</Label>
+                  <Input
+                    placeholder="Nom de l'utilisateur"
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Type d'accès</Label>
+                  <select 
+                    className="w-full p-2 border rounded-md"
+                    value={editingRole}
+                    onChange={(e) => setEditingRole(e.target.value)}
+                    disabled={editingCode === "ADMIN2024"}
+                  >
+                    <option value="visitor">Visiteur</option>
+                    <option value="student">Étudiant</option>
+                    <option value="admin">Administrateur</option>
+                  </select>
+                  {editingCode === "ADMIN2024" && (
+                    <p className="text-xs text-amber-600">Le rôle du compte administrateur ne peut pas être modifié</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={confirmEditCode} className="flex items-center gap-2">
+              <Save className="h-4 w-4" />
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
