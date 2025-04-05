@@ -23,6 +23,7 @@ const Index = () => {
       // Les visiteurs sont redirigés vers la page Quiz s'ils sont sur la page d'accueil
       if (location.pathname === "/") {
         navigate("/quiz");
+        return;
       }
       
       // Vérifier si l'utilisateur essaie d'accéder à une page non autorisée
@@ -38,7 +39,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomNavigation />
-      <main>
+      <main className="pt-4">
         <Outlet />
       </main>
     </div>

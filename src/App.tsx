@@ -21,6 +21,7 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children, requireAdmin = false, visitorAllowed = false }) => {
   const userString = localStorage.getItem("user");
   
+  // Si l'utilisateur n'est pas connecté, rediriger vers la page de connexion
   if (!userString) {
     return <Navigate to="/login" replace />;
   }
