@@ -71,7 +71,11 @@ const App = () => {
                 <Index />
               </ProtectedRoute>
             }>
-              <Route index element={<Navigate to="/quiz" replace />} />
+              <Route index element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <Navigate to="/quiz" replace />
+                </ProtectedRoute>
+              } />
               <Route path="questions" element={
                 <ProtectedRoute requireAdmin={true}>
                   <QuestionCreator />

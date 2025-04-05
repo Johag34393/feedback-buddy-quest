@@ -15,23 +15,25 @@ const Index = () => {
       return;
     }
     
-    // Rediriger vers la page appropriée en fonction du rôle
+    // Obtenir le rôle de l'utilisateur
     const user = JSON.parse(userString);
-    if (user.role === "admin") {
-      // Les administrateurs restent sur la page actuelle
-    } else {
-      // Les visiteurs sont redirigés vers la page Quiz s'ils sont sur la page d'accueil
+    
+    // Pour les visiteurs (non-admin), les rediriger correctement
+    if (user.role !== "admin") {
+      // Les pages autorisées pour les visiteurs
+      const allowedVisitorPaths = ["/quiz", "/revision", "/messages"];
+      
+      // Si on est sur la page d'accueil, rediriger vers le quiz
       if (location.pathname === "/") {
         navigate("/quiz");
         return;
       }
       
-      // Vérifier si l'utilisateur essaie d'accéder à une page non autorisée
-      const allowedVisitorPaths = ["/quiz", "/revision", "/messages"];
-      const isAllowedPath = allowedVisitorPaths.some(path => location.pathname.startsWith(path));
-      
-      if (!isAllowedPath && location.pathname !== "/") {
+      // Si la page n'est pas autorisée, rediriger vers /quiz
+      const currentMainPath = "/" + location.pathname.split("/")[1];
+      if (!allowedVisitorPaths.includes(currentMainPath)) {
         navigate("/quiz");
+        return;
       }
     }
   }, [navigate, location.pathname]);
@@ -39,7 +41,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomNavigation />
-      <main className="pt-4">
+      <main className="pt-4 px-4">
         <Outlet />
       </main>
     </div>

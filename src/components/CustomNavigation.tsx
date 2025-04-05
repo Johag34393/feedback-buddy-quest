@@ -69,6 +69,7 @@ const CustomNavigation = () => {
     },
   ];
   
+  // Filtrer les éléments du menu selon le rôle de l'utilisateur
   const filteredMenuItems = menuItems.filter(item => 
     !item.admin || (item.admin && isAdmin)
   );
@@ -84,7 +85,7 @@ const CustomNavigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link to="/" className="text-lg font-bold text-primary">
+            <Link to={isAdmin ? "/" : "/quiz"} className="text-lg font-bold text-primary">
               EPHATA
             </Link>
           </div>
@@ -96,7 +97,7 @@ const CustomNavigation = () => {
                 to={item.path}
               >
                 <Button
-                  variant={location.pathname === item.path ? "default" : "ghost"}
+                  variant={location.pathname.startsWith(item.path) ? "default" : "ghost"}
                   size="sm"
                   className="flex items-center gap-1"
                 >
@@ -133,7 +134,7 @@ const CustomNavigation = () => {
               className="flex-shrink-0"
             >
               <Button
-                variant={location.pathname === item.path ? "default" : "ghost"}
+                variant={location.pathname.startsWith(item.path) ? "default" : "ghost"}
                 size="sm"
                 className="whitespace-nowrap flex items-center gap-1"
               >
