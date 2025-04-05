@@ -29,11 +29,11 @@ const Index = () => {
         return;
       }
       
-      // Si la page n'est pas autorisée, rediriger vers /quiz
+      // Vérifier si l'utilisateur essaie d'accéder à une page non autorisée
       const currentMainPath = "/" + location.pathname.split("/")[1];
       if (!allowedVisitorPaths.includes(currentMainPath)) {
+        // Rediriger uniquement si la page actuelle n'est pas déjà une page autorisée
         navigate("/quiz");
-        return;
       }
     }
   }, [navigate, location.pathname]);
@@ -41,7 +41,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomNavigation />
-      <main className="pt-4 px-4">
+      <main className="container mx-auto pt-4 px-4">
         <Outlet />
       </main>
     </div>

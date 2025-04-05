@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 
+// Composant amélioré pour protéger les routes
 const ProtectedRoute = ({ children, requireAdmin = false, visitorAllowed = false }) => {
   const userString = localStorage.getItem("user");
   
@@ -38,6 +39,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, visitorAllowed = false
     return <Navigate to="/quiz" replace />;
   }
   
+  // Sinon, afficher le contenu normalement
   return children;
 };
 
@@ -72,9 +74,7 @@ const App = () => {
               </ProtectedRoute>
             }>
               <Route index element={
-                <ProtectedRoute visitorAllowed={true}>
-                  <Navigate to="/quiz" replace />
-                </ProtectedRoute>
+                <Navigate to="/quiz" replace />
               } />
               <Route path="questions" element={
                 <ProtectedRoute requireAdmin={true}>
