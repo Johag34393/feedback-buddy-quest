@@ -19,10 +19,10 @@ const Index = () => {
     // Obtenir le rôle de l'utilisateur
     const user = JSON.parse(userString);
     
-    // Pour les visiteurs (non-admin), les rediriger correctement
+    // Pour les agents (non-admin), les rediriger correctement
     if (user.role !== "admin") {
-      // Les pages autorisées pour les visiteurs
-      const allowedVisitorPaths = ["/quiz", "/revision", "/messages"];
+      // Les pages autorisées pour les agents
+      const allowedAgentPaths = ["/quiz", "/revision", "/messages"];
       
       // Si on est sur la page d'accueil, rediriger vers le quiz
       if (location.pathname === "/") {
@@ -32,8 +32,8 @@ const Index = () => {
       
       // Vérifier si l'utilisateur essaie d'accéder à une page non autorisée
       const currentMainPath = "/" + location.pathname.split("/")[1];
-      if (!allowedVisitorPaths.includes(currentMainPath)) {
-        // Rediriger uniquement si la page actuelle n'est pas déjà une page autorisée
+      if (!allowedAgentPaths.includes(currentMainPath)) {
+        // Rediriger vers le quiz si la page actuelle n'est pas autorisée
         navigate("/quiz");
       }
     }

@@ -34,7 +34,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, visitorAllowed = false
     return <Navigate to="/quiz" replace />;
   }
   
-  // Si la route n'est pas autorisée pour les visiteurs et que l'utilisateur n'est pas admin
+  // Si la route n'est pas autorisée pour les agents et que l'utilisateur n'est pas admin
   if (!visitorAllowed && user.role !== "admin") {
     return <Navigate to="/quiz" replace />;
   }
@@ -76,29 +76,15 @@ const App = () => {
               <Route index element={
                 <Navigate to="/quiz" replace />
               } />
+              {/* Routes pour administrateur uniquement */}
               <Route path="questions" element={
                 <ProtectedRoute requireAdmin={true}>
                   <QuestionCreator />
                 </ProtectedRoute>
               } />
-              <Route path="quiz" element={
-                <ProtectedRoute visitorAllowed={true}>
-                  <Quiz />
-                </ProtectedRoute>
-              } />
               <Route path="notes" element={
                 <ProtectedRoute requireAdmin={true}>
                   <Notes />
-                </ProtectedRoute>
-              } />
-              <Route path="revision" element={
-                <ProtectedRoute visitorAllowed={true}>
-                  <Revision />
-                </ProtectedRoute>
-              } />
-              <Route path="messages" element={
-                <ProtectedRoute visitorAllowed={true}>
-                  <MessageCollection />
                 </ProtectedRoute>
               } />
               <Route path="deployment" element={
@@ -109,6 +95,23 @@ const App = () => {
               <Route path="access-codes" element={
                 <ProtectedRoute requireAdmin={true}>
                   <AccessCodeManager />
+                </ProtectedRoute>
+              } />
+              
+              {/* Routes accessibles aux agents */}
+              <Route path="quiz" element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <Quiz />
+                </ProtectedRoute>
+              } />
+              <Route path="revision" element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <Revision />
+                </ProtectedRoute>
+              } />
+              <Route path="messages" element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <MessageCollection />
                 </ProtectedRoute>
               } />
             </Route>

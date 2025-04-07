@@ -1,15 +1,38 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import React, { useState, useEffect, useCallback } from "react";
+import { useDropzone } from "react-dropzone";
+import { v4 as uuidv4 } from 'uuid';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Plus, QrCode, Link } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import QRCode from 'react-qr-code';
-import { toast } from "@/utils/toastUtils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Trash2, Plus, Edit } from "lucide-react";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/components/ui/use-toast";
 
 interface QuestionOption {
   id: string;
@@ -32,540 +55,578 @@ interface QuestionSet {
 
 const QuestionCreator = () => {
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
-  const [currentQuestionSet, setCurrentQuestionSet] = useState<string>("");
-  const [currentQuestionSetTitle, setCurrentQuestionSetTitle] = useState<string>("");
+  const [newSetTitle, setNewSetTitle] = useState("");
+  const [selectedSet, setSelectedSet] = useState<QuestionSet | null>(null);
+  const [newQuestionText, setNewQuestionText] = useState("");
+  const [newOptionText, setNewOptionText] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState<string>("");
-  const [options, setOptions] = useState<QuestionOption[]>([
-    { id: "a", text: "" },
-    { id: "b", text: "" },
-    { id: "c", text: "" },
-    { id: "d", text: "" },
-  ]);
-  const [correctAnswerId, setCorrectAnswerId] = useState<string>("a");
-  const [deploymentURL, setDeploymentURL] = useState<string>("https://ephata.lovable.app");
-  const { toast } = useToast();
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
-    const savedQuestionSets = localStorage.getItem("questionSets");
-    if (savedQuestionSets) {
-      const parsedSets = JSON.parse(savedQuestionSets);
-      setQuestionSets(parsedSets);
-      
-      if (parsedSets.length > 0) {
-        setCurrentQuestionSet(parsedSets[0].id);
-        setCurrentQuestionSetTitle(parsedSets[0].title);
-        setQuestions(parsedSets[0].questions);
-      }
-    }
+    loadQuestionSets();
   }, []);
 
-  const handleOptionChange = (id: string, value: string) => {
-    setOptions(
-      options.map((option) =>
-        option.id === id ? { ...option, text: value } : option
-      )
-    );
+  useEffect(() => {
+    if (selectedSet) {
+      setQuestions(selectedSet.questions);
+    } else {
+      setQuestions([]);
+    }
+  }, [selectedSet]);
+
+  const loadQuestionSets = () => {
+    const savedSets = localStorage.getItem("questionSets");
+    if (savedSets) {
+      setQuestionSets(JSON.parse(savedSets));
+    }
   };
 
-  const createNewQuestionSet = () => {
-    if (!currentQuestionSetTitle.trim()) {
+  const saveQuestionSets = (sets: QuestionSet[]) => {
+    localStorage.setItem("questionSets", JSON.stringify(sets));
+    loadQuestionSets();
+  };
+
+  const handleCreateSet = () => {
+    if (newSetTitle.trim() === "") {
       toast({
         title: "Erreur",
-        description: "Veuillez donner un titre à l'ensemble de questions",
+        description: "Le titre de l'ensemble ne peut pas être vide.",
         variant: "destructive",
       });
       return;
     }
 
-    if (questionSets.length >= 100) {
-      toast({
-        title: "Limite atteinte",
-        description: "Vous avez atteint la limite de 100 ensembles de questions",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newSetId = `set-${Date.now()}`;
     const newSet: QuestionSet = {
-      id: newSetId,
-      title: currentQuestionSetTitle,
+      id: uuidv4(),
+      title: newSetTitle,
       questions: [],
       createdAt: new Date().toISOString(),
     };
 
     const updatedSets = [...questionSets, newSet];
     setQuestionSets(updatedSets);
-    setCurrentQuestionSet(newSetId);
-    setQuestions([]);
-    
-    localStorage.setItem("questionSets", JSON.stringify(updatedSets));
-    
+    saveQuestionSets(updatedSets);
+    setNewSetTitle("");
     toast({
-      title: "Ensemble créé",
-      description: `Nouvel ensemble de questions "${currentQuestionSetTitle}" créé avec succès`,
+      title: "Succès",
+      description: "L'ensemble de questions a été créé avec succès.",
+      variant: "default",
     });
   };
 
-  const switchQuestionSet = (setId: string) => {
-    const selectedSet = questionSets.find(set => set.id === setId);
-    if (selectedSet) {
-      setCurrentQuestionSet(setId);
-      setCurrentQuestionSetTitle(selectedSet.title);
-      setQuestions(selectedSet.questions);
-    }
+  const handleSelectSet = (setId: string) => {
+    const set = questionSets.find((set) => set.id === setId);
+    setSelectedSet(set || null);
   };
 
-  const deleteQuestionSet = (setId: string) => {
-    const updatedSets = questionSets.filter(set => set.id !== setId);
-    setQuestionSets(updatedSets);
-    
-    if (currentQuestionSet === setId) {
-      if (updatedSets.length > 0) {
-        setCurrentQuestionSet(updatedSets[0].id);
-        setCurrentQuestionSetTitle(updatedSets[0].title);
-        setQuestions(updatedSets[0].questions);
-      } else {
-        setCurrentQuestionSet("");
-        setCurrentQuestionSetTitle("");
-        setQuestions([]);
-      }
-    }
-    
-    localStorage.setItem("questionSets", JSON.stringify(updatedSets));
-    
-    toast({
-      title: "Ensemble supprimé",
-      description: "L'ensemble de questions a été supprimé avec succès",
-    });
-  };
-
-  const addQuestion = () => {
-    if (!currentQuestion.trim()) {
+  const handleAddQuestion = () => {
+    if (!selectedSet) {
       toast({
         title: "Erreur",
-        description: "La question ne peut pas être vide",
+        description: "Veuillez sélectionner un ensemble de questions.",
         variant: "destructive",
       });
       return;
     }
 
-    if (options.some((option) => !option.text.trim())) {
+    if (newQuestionText.trim() === "") {
       toast({
         title: "Erreur",
-        description: "Toutes les options doivent être remplies",
+        description: "Le texte de la question ne peut pas être vide.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!currentQuestionSet) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez d'abord créer ou sélectionner un ensemble de questions",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (questions.length >= 10) {
-      toast({
-        title: "Limite atteinte",
-        description: "Chaque ensemble est limité à 10 questions",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newQuestion = {
-      id: `q-${Date.now()}`,
-      text: currentQuestion,
-      options: [...options],
-      correctAnswerId,
+    const newQuestion: Question = {
+      id: uuidv4(),
+      text: newQuestionText,
+      options: [],
+      correctAnswerId: "",
     };
 
     const updatedQuestions = [...questions, newQuestion];
     setQuestions(updatedQuestions);
-    
-    const updatedSets = questionSets.map(set => 
-      set.id === currentQuestionSet 
-        ? { ...set, questions: updatedQuestions } 
-        : set
+
+    const updatedSets = questionSets.map((set) =>
+      set.id === selectedSet.id ? { ...set, questions: updatedQuestions } : set
     );
     setQuestionSets(updatedSets);
-    
-    localStorage.setItem("questionSets", JSON.stringify(updatedSets));
-    
-    const allQuestions = [];
-    for (const set of updatedSets) {
-      if (set.questions && set.questions.length > 0) {
-        allQuestions.push(...set.questions);
-      }
-    }
-    localStorage.setItem("quizQuestions", JSON.stringify(allQuestions));
-    
-    setCurrentQuestion("");
-    setOptions([
-      { id: "a", text: "" },
-      { id: "b", text: "" },
-      { id: "c", text: "" },
-      { id: "d", text: "" },
-    ]);
-    setCorrectAnswerId("a");
-
+    saveQuestionSets(updatedSets);
+    setNewQuestionText("");
     toast({
-      title: "Question ajoutée",
-      description: `Question ${questions.length + 1} sur 10 ajoutée avec succès`,
+      title: "Succès",
+      description: "La question a été ajoutée avec succès.",
+      variant: "default",
     });
-    
-    toast.success("Question ajoutée au système de révision");
   };
 
-  const deleteQuestion = (questionId: string) => {
-    const updatedQuestions = questions.filter(q => q.id !== questionId);
+  const handleAddOption = (questionId: string) => {
+    if (newOptionText.trim() === "") {
+      toast({
+        title: "Erreur",
+        description: "Le texte de l'option ne peut pas être vide.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newOption: QuestionOption = {
+      id: uuidv4(),
+      text: newOptionText,
+    };
+
+    const updatedQuestions = questions.map((question) => {
+      if (question.id === questionId) {
+        return {
+          ...question,
+          options: [...question.options, newOption],
+        };
+      }
+      return question;
+    });
     setQuestions(updatedQuestions);
-    
-    const updatedSets = questionSets.map(set => 
-      set.id === currentQuestionSet 
-        ? { ...set, questions: updatedQuestions } 
+
+    const updatedSets = questionSets.map((set) =>
+      set.id === selectedSet?.id
+        ? { ...set, questions: updatedQuestions }
         : set
     );
     setQuestionSets(updatedSets);
-    
-    localStorage.setItem("questionSets", JSON.stringify(updatedSets));
-    
-    const allQuestions = [];
-    for (const set of updatedSets) {
-      if (set.questions && set.questions.length > 0) {
-        allQuestions.push(...set.questions);
-      }
-    }
-    localStorage.setItem("quizQuestions", JSON.stringify(allQuestions));
-    
+    saveQuestionSets(updatedSets);
+    setNewOptionText("");
     toast({
-      title: "Question supprimée",
-      description: "La question a été supprimée avec succès",
+      title: "Succès",
+      description: "L'option a été ajoutée avec succès.",
+      variant: "default",
     });
   };
+
+  const handleDeleteOption = (questionId: string, optionId: string) => {
+    const updatedQuestions = questions.map((question) => {
+      if (question.id === questionId) {
+        return {
+          ...question,
+          options: question.options.filter((option) => option.id !== optionId),
+        };
+      }
+      return question;
+    });
+    setQuestions(updatedQuestions);
+
+    const updatedSets = questionSets.map((set) =>
+      set.id === selectedSet?.id
+        ? { ...set, questions: updatedQuestions }
+        : set
+    );
+    setQuestionSets(updatedSets);
+    saveQuestionSets(updatedSets);
+    toast({
+      title: "Succès",
+      description: "L'option a été supprimée avec succès.",
+      variant: "default",
+    });
+  };
+
+  const handleSetCorrectAnswer = (questionId: string, optionId: string) => {
+    const updatedQuestions = questions.map((question) => {
+      if (question.id === questionId) {
+        return {
+          ...question,
+          correctAnswerId: optionId,
+        };
+      }
+      return question;
+    });
+    setQuestions(updatedQuestions);
+
+    const updatedSets = questionSets.map((set) =>
+      set.id === selectedSet?.id
+        ? { ...set, questions: updatedQuestions }
+        : set
+    );
+    setQuestionSets(updatedSets);
+    saveQuestionSets(updatedSets);
+    toast({
+      title: "Succès",
+      description: "La réponse correcte a été définie avec succès.",
+      variant: "default",
+    });
+  };
+
+  const handleEditQuestion = (question: Question) => {
+    setEditingQuestion(question);
+    setNewQuestionText(question.text);
+  };
+
+  const handleUpdateQuestion = () => {
+    if (!editingQuestion) return;
+
+    if (newQuestionText.trim() === "") {
+      toast({
+        title: "Erreur",
+        description: "Le texte de la question ne peut pas être vide.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updatedQuestions = questions.map((question) => {
+      if (question.id === editingQuestion.id) {
+        return {
+          ...question,
+          text: newQuestionText,
+        };
+      }
+      return question;
+    });
+    setQuestions(updatedQuestions);
+
+    const updatedSets = questionSets.map((set) =>
+      set.id === selectedSet?.id
+        ? { ...set, questions: updatedQuestions }
+        : set
+    );
+    setQuestionSets(updatedSets);
+    saveQuestionSets(updatedSets);
+    setEditingQuestion(null);
+    setNewQuestionText("");
+    toast({
+      title: "Succès",
+      description: "La question a été mise à jour avec succès.",
+      variant: "default",
+    });
+  };
+
+  const handleDeleteQuestion = (questionId: string) => {
+    setQuestionToDelete(questionId);
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDeleteQuestion = () => {
+    if (!questionToDelete) return;
+
+    const updatedQuestions = questions.filter(
+      (question) => question.id !== questionToDelete
+    );
+    setQuestions(updatedQuestions);
+
+    const updatedSets = questionSets.map((set) =>
+      set.id === selectedSet?.id
+        ? { ...set, questions: updatedQuestions }
+        : set
+    );
+    setQuestionSets(updatedSets);
+    saveQuestionSets(updatedSets);
+    setShowDeleteConfirmation(false);
+    setQuestionToDelete(null);
+    toast({
+      title: "Succès",
+      description: "La question a été supprimée avec succès.",
+      variant: "default",
+    });
+  };
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    setIsImporting(true);
+    const file = acceptedFiles[0];
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const jsonString = reader.result as string;
+        const importedQuestions: Question[] = JSON.parse(jsonString);
+
+        // Validation de la structure des questions importées
+        if (!Array.isArray(importedQuestions) || importedQuestions.some(q => !q.text || !Array.isArray(q.options) || !q.correctAnswerId)) {
+          throw new Error("Le fichier JSON ne contient pas une liste de questions valide.");
+        }
+
+        const updatedQuestions = [...questions, ...importedQuestions];
+        setQuestions(updatedQuestions);
+
+        const updatedSets = questionSets.map((set) =>
+          set.id === selectedSet?.id
+            ? { ...set, questions: updatedQuestions }
+            : set
+        );
+        setQuestionSets(updatedSets);
+        saveQuestionSets(updatedSets);
+        toast({
+          title: "Succès",
+          description: "Les questions ont été importées avec succès.",
+          variant: "default",
+        });
+      } catch (error) {
+        console.error("Erreur lors de l'importation des questions:", error);
+        toast({
+          title: "Erreur",
+          description: "Erreur lors de l'importation des questions. Veuillez vérifier le format du fichier JSON.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsImporting(false);
+      }
+    };
+
+    reader.onerror = () => {
+      setIsImporting(false);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la lecture du fichier.",
+        variant: "destructive",
+      });
+    };
+
+    reader.readAsText(file);
+  }, [questions, questionSets, selectedSet, saveQuestionSets]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: {
+    'application/json': ['.json']
+  } });
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Gestion des Questions EPHATA</h1>
-      
-      <Tabs defaultValue="create" className="mb-8">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="create">Créer des Questions</TabsTrigger>
-          <TabsTrigger value="manage">Gérer les Ensembles</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="create" className="space-y-6">
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-4">Gestionnaire de questions</h1>
+
+      {/* Création et sélection d'un ensemble de questions */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Créer un ensemble de questions</CardTitle>
+          <CardDescription>
+            Créez un nouvel ensemble pour organiser vos questions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="setTitle">Titre de l'ensemble</Label>
+            <Input
+              id="setTitle"
+              placeholder="Nommez votre ensemble"
+              value={newSetTitle}
+              onChange={(e) => setNewSetTitle(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleCreateSet}>Créer un ensemble</Button>
+        </CardContent>
+      </Card>
+
+      {/* Sélection d'un ensemble existant */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Sélectionner un ensemble existant</CardTitle>
+          <CardDescription>
+            Choisissez un ensemble pour gérer ses questions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {questionSets.map((set) => (
+              <Button
+                key={set.id}
+                variant={selectedSet?.id === set.id ? "default" : "outline"}
+                onClick={() => handleSelectSet(set.id)}
+              >
+                {set.title}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedSet && (
+        <>
+          {/* Ajout et édition de questions */}
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Ensemble de Questions</CardTitle>
+              <CardTitle>
+                {editingQuestion ? "Modifier la question" : "Ajouter une question"}
+              </CardTitle>
               <CardDescription>
-                Sélectionnez un ensemble existant ou créez-en un nouveau
+                {editingQuestion
+                  ? "Modifiez le texte de la question sélectionnée."
+                  : "Ajoutez une nouvelle question à l'ensemble."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="set-title">Titre de l'ensemble</Label>
-                  <Input 
-                    id="set-title" 
-                    value={currentQuestionSetTitle}
-                    onChange={e => setCurrentQuestionSetTitle(e.target.value)}
-                    placeholder="ex: Formation service client - Module 1"
-                  />
-                </div>
-                <Button 
-                  className="mt-8" 
-                  onClick={createNewQuestionSet}
-                  disabled={!currentQuestionSetTitle.trim()}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer un nouvel ensemble
-                </Button>
+              <div className="space-y-2">
+                <Label htmlFor="questionText">Texte de la question</Label>
+                <Textarea
+                  id="questionText"
+                  placeholder="Entrez votre question ici"
+                  value={newQuestionText}
+                  onChange={(e) => setNewQuestionText(e.target.value)}
+                />
               </div>
-              
-              {questionSets.length > 0 && (
-                <div>
-                  <Label>Ensembles existants</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-                    {questionSets.map(set => (
-                      <Button 
-                        key={set.id} 
-                        variant={currentQuestionSet === set.id ? "default" : "outline"}
-                        className="justify-start overflow-hidden"
-                        onClick={() => switchQuestionSet(set.id)}
-                      >
-                        {set.title} ({set.questions.length}/10)
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <Button
+                onClick={editingQuestion ? handleUpdateQuestion : handleAddQuestion}
+              >
+                {editingQuestion ? "Mettre à jour la question" : "Ajouter une question"}
+              </Button>
             </CardContent>
           </Card>
-          
-          {currentQuestionSet && (
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Nouvelle question pour "{currentQuestionSetTitle}"</CardTitle>
-                <CardDescription>
-                  Créez une nouvelle question avec 4 options et sélectionnez la bonne réponse
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="question">Question ({questions.length}/10)</Label>
-                  <Textarea
-                    id="question"
-                    placeholder="Saisissez votre question ici..."
-                    value={currentQuestion}
-                    onChange={(e) => setCurrentQuestion(e.target.value)}
-                    className="min-h-[100px]"
-                  />
-                </div>
 
-                <div className="grid gap-4">
-                  <Label>Options de réponse</Label>
-                  {options.map((option) => (
-                    <div key={option.id} className="flex items-start space-x-2">
-                      <div className="w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-md font-bold">
-                        {option.id.toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <Input
-                          placeholder={`Option ${option.id.toUpperCase()}`}
-                          value={option.text}
-                          onChange={(e) => handleOptionChange(option.id, e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="correctAnswer">Réponse correcte</Label>
-                  <select
-                    id="correctAnswer"
-                    value={correctAnswerId}
-                    onChange={(e) => setCorrectAnswerId(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {options.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        Option {option.id.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setCurrentQuestion("");
-                    setOptions([
-                      { id: "a", text: "" },
-                      { id: "b", text: "" },
-                      { id: "c", text: "" },
-                      { id: "d", text: "" },
-                    ]);
-                  }}
-                >
-                  Réinitialiser
-                </Button>
-                <Button 
-                  onClick={addQuestion}
-                  disabled={questions.length >= 10}
-                >
-                  Ajouter la question
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-
-          {questions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Questions créées pour "{currentQuestionSetTitle}"</CardTitle>
-                <CardDescription>
-                  Aperçu des questions que vous avez créées
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {questions.map((q, index) => (
-                    <div key={q.id} className="border rounded-md p-4 relative">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                        onClick={() => deleteQuestion(q.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      
-                      <p className="font-medium mb-2">
-                        Question {index + 1}: {q.text}
-                      </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {q.options.map((option) => (
-                          <div 
-                            key={option.id} 
-                            className={`p-2 rounded-md ${
-                              option.id === q.correctAnswerId 
-                                ? "bg-green-100 border border-green-500" 
-                                : "bg-gray-50"
-                            }`}
-                          >
-                            <span className="font-medium">{option.id.toUpperCase()}:</span> {option.text}
-                            {option.id === q.correctAnswerId && (
-                              <span className="ml-2 text-green-600">(Correcte)</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="manage" className="space-y-6">
-          <Card>
+          {/* Ajout d'options à une question */}
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Gérer les Ensembles de Questions</CardTitle>
+              <CardTitle>Ajouter une option</CardTitle>
               <CardDescription>
-                Vous avez créé {questionSets.length} ensembles sur 100 possibles
+                Ajoutez des options à la question sélectionnée.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="optionText">Texte de l'option</Label>
+                <Input
+                  id="optionText"
+                  placeholder="Entrez une option"
+                  value={newOptionText}
+                  onChange={(e) => setNewOptionText(e.target.value)}
+                />
+              </div>
+              <Button onClick={() => handleAddOption("")}>
+                Ajouter une option
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Importation de questions depuis un fichier JSON */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Importer des questions depuis un fichier JSON</CardTitle>
+              <CardDescription>
+                Importez une liste de questions depuis un fichier JSON.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {questionSets.length === 0 ? (
-                <div className="text-center p-6 text-muted-foreground">
-                  Aucun ensemble de questions n'a encore été créé.
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {questionSets.map(set => (
-                    <Card key={set.id} className="relative overflow-hidden border">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-center">
-                          <CardTitle className="text-lg">{set.title}</CardTitle>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-red-500 hover:text-red-700"
-                            onClick={() => deleteQuestionSet(set.id)}
+              <div {...getRootProps()} className="dropzone">
+                <input {...getInputProps()} />
+                {
+                  isDragActive ?
+                    <p>Déposez les fichiers ici ...</p> :
+                    <p>Glissez-déposez des fichiers ici, ou cliquez pour sélectionner des fichiers</p>
+                }
+              </div>
+              {isImporting && <p>Importation en cours...</p>}
+            </CardContent>
+          </Card>
+
+          {/* Affichage des questions existantes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Questions existantes</CardTitle>
+              <CardDescription>
+                Gérez les questions de l'ensemble sélectionné.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Question</TableHead>
+                    <TableHead>Options</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {questions.map((question) => (
+                    <TableRow key={question.id}>
+                      <TableCell>{question.text}</TableCell>
+                      <TableCell>
+                        <ul>
+                          {question.options.map((option) => (
+                            <li key={option.id} className="flex items-center justify-between">
+                              {option.text}
+                              <div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleSetCorrectAnswer(question.id, option.id)
+                                  }
+                                >
+                                  {question.correctAnswerId === option.id
+                                    ? "Correct"
+                                    : "Définir comme correct"}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    handleDeleteOption(question.id, option.id)
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </li>
+                          ))}
+                          <li className="mt-2">
+                            <Input
+                              type="text"
+                              placeholder="Nouvelle option"
+                              value={newOptionText}
+                              onChange={(e) => setNewOptionText(e.target.value)}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-1"
+                              onClick={() => handleAddOption(question.id)}
+                            >
+                              Ajouter une option
+                            </Button>
+                          </li>
+                        </ul>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditQuestion(question)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteQuestion(question.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        <CardDescription>
-                          Créé le {new Date(set.createdAt).toLocaleDateString()}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pb-2">
-                        <p>Contient {set.questions.length} questions sur 10 possibles</p>
-                      </CardContent>
-                      <CardFooter className="pt-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full"
-                          onClick={() => switchQuestionSet(set.id)}
-                        >
-                          Modifier cet ensemble
-                        </Button>
-                      </CardFooter>
-                    </Card>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </div>
-              )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Déploiement de l'application</CardTitle>
-              <CardDescription>
-                Partagez votre application EPHATA avec d'autres utilisateurs
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col md:flex-row gap-4 items-center">
-                <div className="flex-1 space-y-2 w-full">
-                  <Label htmlFor="deployment-url">URL de déploiement</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      id="deployment-url" 
-                      value={deploymentURL}
-                      readOnly
-                    />
-                    <Button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(deploymentURL);
-                        toast({
-                          title: "URL copiée",
-                          description: "L'URL de déploiement a été copiée dans le presse-papier",
-                        });
-                      }}
-                      variant="outline"
-                    >
-                      <Link className="h-4 w-4 mr-2" />
-                      Copier
-                    </Button>
-                  </div>
-                </div>
-              
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">
-                      <QrCode className="h-4 w-4 mr-2" />
-                      Voir QR Code
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>QR Code EPHATA</DialogTitle>
-                      <DialogDescription>
-                        Scannez ce QR code pour accéder à l'application
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex items-center justify-center p-4">
-                      <QRCode 
-                        value={deploymentURL} 
-                        size={256}
-                        level="H"
-                      />
-                    </div>
-                    <DialogFooter>
-                      <Button 
-                        onClick={() => {
-                          const canvas = document.querySelector("canvas");
-                          if (canvas) {
-                            const link = document.createElement("a");
-                            link.download = "ephata-qrcode.png";
-                            link.href = canvas.toDataURL("image/png");
-                            link.click();
-                          }
-                        }}
-                        className="w-full"
-                      >
-                        Télécharger le QR Code
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </>
+      )}
+
+      {/* Confirmation de suppression d'une question */}
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr(e) ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action supprimera la question de manière permanente.
+              Voulez-vous continuer ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteConfirmation(false)}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteQuestion}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

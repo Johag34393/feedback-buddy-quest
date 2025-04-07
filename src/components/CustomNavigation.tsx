@@ -24,54 +24,58 @@ const CustomNavigation = () => {
   
   const isAdmin = user?.role === "admin";
   
+  // Définir les éléments du menu avec une indication claire de qui peut y accéder
   const menuItems = [
+    // Éléments accessibles uniquement aux administrateurs
     {
       path: "/questions",
       label: "Questions",
       icon: <FileQuestion className="w-4 h-4" />,
-      admin: true
-    },
-    {
-      path: "/quiz",
-      label: "Quiz",
-      icon: <Clock className="w-4 h-4" />,
-      admin: false
+      adminOnly: true
     },
     {
       path: "/notes",
       label: "Notes",
       icon: <ClipboardCheck className="w-4 h-4" />,
-      admin: true
-    },
-    {
-      path: "/revision",
-      label: "Révision",
-      icon: <BookOpen className="w-4 h-4" />,
-      admin: false
-    },
-    {
-      path: "/messages",
-      label: "Messages",
-      icon: <MessageSquare className="w-4 h-4" />,
-      admin: false
+      adminOnly: true
     },
     {
       path: "/deployment",
       label: "Déploiement",
       icon: <QrCode className="w-4 h-4" />,
-      admin: true
+      adminOnly: true
     },
     {
       path: "/access-codes",
       label: "Codes d'accès",
       icon: <KeyRound className="w-4 h-4" />,
-      admin: true
+      adminOnly: true
+    },
+    
+    // Éléments accessibles à tous (administrateurs et agents)
+    {
+      path: "/quiz",
+      label: "Quiz",
+      icon: <Clock className="w-4 h-4" />,
+      adminOnly: false
+    },
+    {
+      path: "/revision",
+      label: "Révision",
+      icon: <BookOpen className="w-4 h-4" />,
+      adminOnly: false
+    },
+    {
+      path: "/messages",
+      label: "Messages",
+      icon: <MessageSquare className="w-4 h-4" />,
+      adminOnly: false
     },
   ];
   
   // Filtrer les éléments du menu selon le rôle de l'utilisateur
   const filteredMenuItems = menuItems.filter(item => 
-    !item.admin || (item.admin && isAdmin)
+    !item.adminOnly || (item.adminOnly && isAdmin)
   );
   
   const handleLogout = () => {
