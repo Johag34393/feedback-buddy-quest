@@ -2,6 +2,7 @@
 import React, { useEffect } from "react";
 import CustomNavigation from "@/components/CustomNavigation";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -35,6 +36,14 @@ const Index = () => {
         // Rediriger uniquement si la page actuelle n'est pas déjà une page autorisée
         navigate("/quiz");
       }
+    }
+    
+    // Vérifier si les questions existent pour l'utilisateur
+    const hasQuestions = !!localStorage.getItem("questionSets");
+    if (!hasQuestions && user.role !== "admin") {
+      toast.info("Aucune question n'est disponible. Contactez l'administrateur.", {
+        duration: 5000
+      });
     }
   }, [navigate, location.pathname]);
 

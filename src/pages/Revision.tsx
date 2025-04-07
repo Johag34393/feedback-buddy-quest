@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface Question {
-  id: number;
+  id: string;
   text: string;
   options: {
     id: string;
@@ -28,6 +28,26 @@ const Revision = () => {
     const savedQuestions = localStorage.getItem("quizQuestions");
     if (savedQuestions) {
       setQuestions(JSON.parse(savedQuestions));
+    } else {
+      // Si quizQuestions n'existe pas, essayer de charger depuis questionSets
+      const savedQuestionSets = localStorage.getItem("questionSets");
+      if (savedQuestionSets) {
+        const parsedSets = JSON.parse(savedQuestionSets);
+        const allQuestions = [];
+        
+        // Extraire toutes les questions de tous les ensembles
+        for (const set of parsedSets) {
+          if (set.questions && set.questions.length > 0) {
+            allQuestions.push(...set.questions);
+          }
+        }
+        
+        if (allQuestions.length > 0) {
+          setQuestions(allQuestions);
+          // Sauvegarder pour une utilisation future
+          localStorage.setItem("quizQuestions", JSON.stringify(allQuestions));
+        }
+      }
     }
   }, []);
 
@@ -39,9 +59,8 @@ const Revision = () => {
 
     setIsLoading(true);
     
-    // Simuler une réponse d'IA (dans une vraie application, cela appellerait une API d'IA)
+    // Rechercher dans les questions existantes
     setTimeout(() => {
-      // Rechercher dans les questions existantes
       const matchingQuestions = questions.filter(
         q => q.text.toLowerCase().includes(query.toLowerCase())
       );

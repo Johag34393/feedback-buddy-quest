@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Plus, QrCode, Link } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import QRCode from 'react-qr-code';
+import { toast } from "sonner";
 
 interface QuestionOption {
   id: string;
@@ -47,13 +47,11 @@ const QuestionCreator = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Charger les ensembles de questions depuis localStorage
     const savedQuestionSets = localStorage.getItem("questionSets");
     if (savedQuestionSets) {
       const parsedSets = JSON.parse(savedQuestionSets);
       setQuestionSets(parsedSets);
       
-      // Si un ensemble est présent, sélectionner le premier
       if (parsedSets.length > 0) {
         setCurrentQuestionSet(parsedSets[0].id);
         setCurrentQuestionSetTitle(parsedSets[0].title);
@@ -102,7 +100,6 @@ const QuestionCreator = () => {
     setCurrentQuestionSet(newSetId);
     setQuestions([]);
     
-    // Sauvegarde dans localStorage
     localStorage.setItem("questionSets", JSON.stringify(updatedSets));
     
     toast({
@@ -124,7 +121,6 @@ const QuestionCreator = () => {
     const updatedSets = questionSets.filter(set => set.id !== setId);
     setQuestionSets(updatedSets);
     
-    // Si l'ensemble actuel est supprimé, sélectionner le premier ensemble restant
     if (currentQuestionSet === setId) {
       if (updatedSets.length > 0) {
         setCurrentQuestionSet(updatedSets[0].id);
@@ -137,7 +133,6 @@ const QuestionCreator = () => {
       }
     }
     
-    // Sauvegarde dans localStorage
     localStorage.setItem("questionSets", JSON.stringify(updatedSets));
     
     toast({
@@ -183,7 +178,7 @@ const QuestionCreator = () => {
       return;
     }
 
-    const newQuestion: Question = {
+    const newQuestion = {
       id: `q-${Date.now()}`,
       text: currentQuestion,
       options: [...options],
@@ -193,7 +188,6 @@ const QuestionCreator = () => {
     const updatedQuestions = [...questions, newQuestion];
     setQuestions(updatedQuestions);
     
-    // Mettre à jour l'ensemble de questions actuel
     const updatedSets = questionSets.map(set => 
       set.id === currentQuestionSet 
         ? { ...set, questions: updatedQuestions } 
@@ -201,10 +195,16 @@ const QuestionCreator = () => {
     );
     setQuestionSets(updatedSets);
     
-    // Sauvegarde dans localStorage
     localStorage.setItem("questionSets", JSON.stringify(updatedSets));
     
-    // Reset form
+    const allQuestions = [];
+    for (const set of updatedSets) {
+      if (set.questions && set.questions.length > 0) {
+        allQuestions.push(...set.questions);
+      }
+    }
+    localStorage.setItem("quizQuestions", JSON.stringify(allQuestions));
+    
     setCurrentQuestion("");
     setOptions([
       { id: "a", text: "" },
@@ -218,13 +218,14 @@ const QuestionCreator = () => {
       title: "Question ajoutée",
       description: `Question ${questions.length + 1} sur 10 ajoutée avec succès`,
     });
+    
+    toast.success("Question ajoutée au système de révision");
   };
 
   const deleteQuestion = (questionId: string) => {
     const updatedQuestions = questions.filter(q => q.id !== questionId);
     setQuestions(updatedQuestions);
     
-    // Mettre à jour l'ensemble de questions actuel
     const updatedSets = questionSets.map(set => 
       set.id === currentQuestionSet 
         ? { ...set, questions: updatedQuestions } 
@@ -232,8 +233,15 @@ const QuestionCreator = () => {
     );
     setQuestionSets(updatedSets);
     
-    // Sauvegarde dans localStorage
     localStorage.setItem("questionSets", JSON.stringify(updatedSets));
+    
+    const allQuestions = [];
+    for (const set of updatedSets) {
+      if (set.questions && set.questions.length > 0) {
+        allQuestions.push(...set.questions);
+      }
+    }
+    localStorage.setItem("quizQuestions", JSON.stringify(allQuestions));
     
     toast({
       title: "Question supprimée",
@@ -538,7 +546,6 @@ const QuestionCreator = () => {
                     <DialogFooter>
                       <Button 
                         onClick={() => {
-                          // Créer un canvas à partir du QR code et le télécharger
                           const canvas = document.querySelector("canvas");
                           if (canvas) {
                             const link = document.createElement("a");
