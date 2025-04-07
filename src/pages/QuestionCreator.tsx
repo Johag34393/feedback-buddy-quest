@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Plus, QrCode, Link } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import QRCode from 'react-qr-code';
-import { toast } from "sonner";
+import { toast } from "@/utils/toastUtils";
 
 interface QuestionOption {
   id: string;

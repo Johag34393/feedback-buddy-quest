@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
 import { 
   InputOTP, 
   InputOTPGroup, 
@@ -31,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Trash2, AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { toast } from "@/utils/toastUtils";
 
 // Define types for our access codes and OTP codes
 interface UserDetails {
@@ -54,8 +54,8 @@ const initializeAccessCodes = (): AccessCodes => {
   }
   return {
     "ADMIN2024": { role: "admin", name: "Administrateur" },
-    "VISIT001": { role: "visitor", name: "Visiteur 1" },
-    "VISIT002": { role: "visitor", name: "Visiteur 2" },
+    "VISIT001": { role: "visitor", name: "Agent 1" },
+    "VISIT002": { role: "visitor", name: "Agent 2" },
   };
 };
 
@@ -66,7 +66,7 @@ const initializeOTPCodes = (): OTPCodes => {
     return JSON.parse(storedOTPCodes);
   }
   return {
-    "1234": { role: "visitor", name: "Visiteur OTP 1" },
+    "1234": { role: "visitor", name: "Agent OTP 1" },
   };
 };
 
@@ -147,7 +147,7 @@ const Login = () => {
 
   const generateAccessCode = () => {
     if (!newCodeName.trim()) {
-      toast.error("Veuillez saisir un nom pour le visiteur");
+      toast.error("Veuillez saisir un nom pour l'agent");
       return;
     }
 
@@ -298,7 +298,7 @@ const Login = () => {
           <DialogHeader>
             <DialogTitle>Gestion des codes d'accès</DialogTitle>
             <DialogDescription>
-              Créez et gérez les codes d'accès pour vos visiteurs
+              Créez et gérez les codes d'accès pour vos agents
             </DialogDescription>
           </DialogHeader>
           
@@ -313,15 +313,15 @@ const Login = () => {
                   value={newCodeRole}
                   onChange={(e) => setNewCodeRole(e.target.value)}
                 >
-                  <option value="visitor">Visiteur</option>
-                  <option value="student">Étudiant</option>
+                  <option value="visitor">Agent</option>
+                  <option value="student">Administrateur</option>
                 </select>
               </div>
               
               <div className="space-y-2">
-                <Label>Nom du visiteur</Label>
+                <Label>Nom de l'agent</Label>
                 <Input
-                  placeholder="Nom du visiteur"
+                  placeholder="Nom de l'agent"
                   value={newCodeName}
                   onChange={(e) => setNewCodeName(e.target.value)}
                 />
@@ -382,7 +382,7 @@ const Login = () => {
                       <TableRow key={code}>
                         <TableCell className="font-medium">{code}</TableCell>
                         <TableCell>{details.name}</TableCell>
-                        <TableCell>{details.role}</TableCell>
+                        <TableCell>{details.role === "admin" ? "Administrateur" : details.role === "student" ? "Administrateur" : "Agent"}</TableCell>
                         <TableCell>
                           <Button 
                             variant="ghost" 

@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Copy, KeyRound, Shield, Edit, Save } from "lucide-react";
+import { toast } from "@/utils/toastUtils";
 
 // Réutiliser les types définis dans Login.tsx
 interface UserDetails {
@@ -106,7 +106,7 @@ const AccessCodeManager = () => {
 
   const generateAccessCode = () => {
     if (!newCodeName.trim()) {
-      toast.error("Veuillez saisir un nom pour le visiteur");
+      toast.error("Veuillez saisir un nom pour l'agent");
       return;
     }
 
@@ -297,7 +297,7 @@ const AccessCodeManager = () => {
               <CardHeader>
                 <CardTitle>Générer un nouveau code d'accès</CardTitle>
                 <CardDescription>
-                  Créez un code d'accès pour un visiteur ou un étudiant
+                  Créez un code d'accès pour un agent ou un administrateur
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -308,15 +308,15 @@ const AccessCodeManager = () => {
                     value={newCodeRole}
                     onChange={(e) => setNewCodeRole(e.target.value)}
                   >
-                    <option value="visitor">Visiteur</option>
-                    <option value="student">Étudiant</option>
+                    <option value="visitor">Agent</option>
+                    <option value="student">Administrateur</option>
                   </select>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Nom du visiteur</Label>
+                  <Label>Nom de l'agent</Label>
                   <Input
-                    placeholder="Nom du visiteur"
+                    placeholder="Nom de l'agent"
                     value={newCodeName}
                     onChange={(e) => setNewCodeName(e.target.value)}
                   />
@@ -376,7 +376,7 @@ const AccessCodeManager = () => {
                         <TableRow key={code}>
                           <TableCell className="font-medium">{code}</TableCell>
                           <TableCell>{details.name}</TableCell>
-                          <TableCell>{details.role}</TableCell>
+                          <TableCell>{details.role === "admin" ? "Administrateur" : details.role === "student" ? "Administrateur" : "Agent"}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Button 
@@ -596,8 +596,8 @@ const AccessCodeManager = () => {
                     onChange={(e) => setEditingRole(e.target.value)}
                     disabled={editingCode === "ADMIN2024"}
                   >
-                    <option value="visitor">Visiteur</option>
-                    <option value="student">Étudiant</option>
+                    <option value="visitor">Agent</option>
+                    <option value="student">Administrateur</option>
                     <option value="admin">Administrateur</option>
                   </select>
                   {editingCode === "ADMIN2024" && (
