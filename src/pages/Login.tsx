@@ -4,11 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  InputOTP, 
-  InputOTPGroup, 
-  InputOTPSlot 
-} from "@/components/ui/input-otp";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   AlertDialog,
@@ -32,17 +27,13 @@ import { Trash2, AlertCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/utils/toastUtils";
 
-// Define types for our access codes and OTP codes
+// Define types for our access codes
 interface UserDetails {
   role: string;
   name: string;
 }
 
 interface AccessCodes {
-  [key: string]: UserDetails;
-}
-
-interface OTPCodes {
   [key: string]: UserDetails;
 }
 
@@ -59,31 +50,15 @@ const initializeAccessCodes = (): AccessCodes => {
   };
 };
 
-// Initialize OTP codes
-const initializeOTPCodes = (): OTPCodes => {
-  const storedOTPCodes = localStorage.getItem("otpCodes");
-  if (storedOTPCodes) {
-    return JSON.parse(storedOTPCodes);
-  }
-  return {
-    "1234": { role: "visitor", name: "Agent OTP 1" },
-  };
-};
-
 const Login = () => {
   const [ACCESS_CODES, setAccessCodes] = useState<AccessCodes>(initializeAccessCodes());
-  const [OTP_CODES, setOTPCodes] = useState<OTPCodes>(initializeOTPCodes());
   const [accessCode, setAccessCode] = useState("");
-  const [useOTP, setUseOTP] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [newCodeRole, setNewCodeRole] = useState("visitor");
   const [newCodeName, setNewCodeName] = useState("");
   const [generatedCode, setGeneratedCode] = useState("");
-  const [newOTPCode, setNewOTPCode] = useState("");
-  const [newOTPName, setNewOTPName] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [codeToDelete, setCodeToDelete] = useState<{ code: string, isOTP: boolean }>({ code: "", isOTP: false });
+  const [codeToDelete, setCodeToDelete] = useState<string>("");
   const navigate = useNavigate();
 
   // Save codes to localStorage whenever they change
@@ -91,46 +66,27 @@ const Login = () => {
     localStorage.setItem("accessCodes", JSON.stringify(ACCESS_CODES));
   }, [ACCESS_CODES]);
 
-  useEffect(() => {
-    localStorage.setItem("otpCodes", JSON.stringify(OTP_CODES));
-  }, [OTP_CODES]);
-
   const handleLogin = () => {
-    if (useOTP) {
-      if (otpValue.length !== 4) {
-        toast.error("Veuillez saisir un code à 4 chiffres");
-        return;
-      }
+    if (accessCode.trim() === "") {
+      toast.error("Veuillez saisir un code d'accès");
+      return;
+    }
 
-      // Check OTP code
-      const otpDetails = OTP_CODES[otpValue];
-      if (otpDetails) {
-        handleSuccessfulLogin(otpDetails, true);
-      } else {
-        toast.error("Code OTP invalide");
-      }
+    const userDetails = ACCESS_CODES[accessCode];
+    
+    if (userDetails) {
+      handleSuccessfulLogin(userDetails);
     } else {
-      if (accessCode.trim() === "") {
-        toast.error("Veuillez saisir un code d'accès");
-        return;
-      }
-
-      const userDetails = ACCESS_CODES[accessCode];
-      
-      if (userDetails) {
-        handleSuccessfulLogin(userDetails, false);
-      } else {
-        toast.error("Code d'accès invalide");
-      }
+      toast.error("Code d'accès invalide");
     }
   };
 
-  const handleSuccessfulLogin = (userDetails: UserDetails, isOTP: boolean) => {
+  const handleSuccessfulLogin = (userDetails: UserDetails) => {
     // Store user information in localStorage
     localStorage.setItem("user", JSON.stringify({
       role: userDetails.role,
       name: userDetails.name,
-      accessCode: isOTP ? `OTP-${otpValue}` : accessCode
+      accessCode: accessCode
     }));
     
     toast.success(`Bienvenue, ${userDetails.name}`);
@@ -164,60 +120,23 @@ const Login = () => {
     toast.success(`Code d'accès généré pour ${newCodeName}`);
   };
 
-  const generateOTPCode = () => {
-    if (!newOTPName.trim()) {
-      toast.error("Veuillez saisir un nom pour l'utilisateur OTP");
-      return;
-    }
-
-    if (newOTPCode.length !== 4 || !/^\d+$/.test(newOTPCode)) {
-      toast.error("Le code OTP doit être composé de 4 chiffres");
-      return;
-    }
-
-    // Add this OTP code to the list
-    setOTPCodes(prevCodes => ({
-      ...prevCodes,
-      [newOTPCode]: { role: "visitor", name: newOTPName }
-    }));
-
-    toast.success(`Code OTP permanent généré pour ${newOTPName}`);
-    setNewOTPCode("");
-    setNewOTPName("");
-  };
-
-  const handleDeleteCode = (code: string, isOTP: boolean) => {
-    setCodeToDelete({ code, isOTP });
+  const handleDeleteCode = (code: string) => {
+    setCodeToDelete(code);
     setShowDeleteDialog(true);
   };
 
   const confirmDeleteCode = () => {
-    const { code, isOTP } = codeToDelete;
-    
-    if (isOTP) {
-      if (code === "1234" && Object.keys(OTP_CODES).length === 1) {
-        toast.error("Impossible de supprimer le dernier code OTP par défaut");
-      } else {
-        setOTPCodes(prevCodes => {
-          const newCodes = { ...prevCodes };
-          delete newCodes[code];
-          return newCodes;
-        });
-        toast.success("Code OTP révoqué avec succès");
-      }
+    if (codeToDelete === "ADMIN2024") {
+      toast.error("Impossible de supprimer le code administrateur");
+    } else if ((codeToDelete === "VISIT001" || codeToDelete === "VISIT002") && Object.keys(ACCESS_CODES).length <= 3) {
+      toast.error("Impossible de supprimer les codes agents par défaut");
     } else {
-      if (code === "ADMIN2024") {
-        toast.error("Impossible de supprimer le code administrateur");
-      } else if ((code === "VISIT001" || code === "VISIT002") && Object.keys(ACCESS_CODES).length <= 3) {
-        toast.error("Impossible de supprimer les codes visiteurs par défaut");
-      } else {
-        setAccessCodes(prevCodes => {
-          const newCodes = { ...prevCodes };
-          delete newCodes[code];
-          return newCodes;
-        });
-        toast.success("Code d'accès révoqué avec succès");
-      }
+      setAccessCodes(prevCodes => {
+        const newCodes = { ...prevCodes };
+        delete newCodes[codeToDelete];
+        return newCodes;
+      });
+      toast.success("Code d'accès révoqué avec succès");
     }
     
     setShowDeleteDialog(false);
@@ -235,52 +154,18 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex justify-center space-x-2 mb-4">
-            <Button 
-              variant={!useOTP ? "default" : "outline"} 
-              onClick={() => setUseOTP(false)}
-            >
+          <div className="space-y-2">
+            <label htmlFor="accessCode" className="text-sm font-medium">
               Code d'accès
-            </Button>
-            <Button 
-              variant={useOTP ? "default" : "outline"} 
-              onClick={() => setUseOTP(true)}
-            >
-              Code OTP
-            </Button>
+            </label>
+            <Input
+              id="accessCode"
+              type="password"
+              placeholder="Entrez votre code d'accès"
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value)}
+            />
           </div>
-
-          {useOTP ? (
-            <div className="space-y-2">
-              <label className="text-sm font-medium block">Code à usage permanent (OTP)</label>
-              <div className="flex justify-center">
-                <InputOTP maxLength={4} value={otpValue} onChange={setOtpValue}>
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-              <p className="text-xs text-gray-500 text-center mt-2">
-                Saisissez le code à 4 chiffres qui vous a été communiqué
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <label htmlFor="accessCode" className="text-sm font-medium">
-                Code d'accès
-              </label>
-              <Input
-                id="accessCode"
-                type="password"
-                placeholder="Entrez votre code d'accès"
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-              />
-            </div>
-          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <Button className="w-full" onClick={handleLogin}>
@@ -338,31 +223,6 @@ const Login = () => {
                   <p className="text-xs text-gray-500">Copiez ce code et partagez-le avec {newCodeName}</p>
                 </div>
               )}
-              
-              <h3 className="text-lg font-medium mt-6">Générer un code OTP permanent</h3>
-              
-              <div className="space-y-2">
-                <Label>Code OTP (4 chiffres)</Label>
-                <Input
-                  placeholder="1234"
-                  value={newOTPCode}
-                  onChange={(e) => setNewOTPCode(e.target.value)}
-                  maxLength={4}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Nom de l'utilisateur</Label>
-                <Input
-                  placeholder="Nom de l'utilisateur"
-                  value={newOTPName}
-                  onChange={(e) => setNewOTPName(e.target.value)}
-                />
-              </div>
-              
-              <Button onClick={generateOTPCode} className="w-full">
-                Générer un code OTP
-              </Button>
             </div>
             
             <div className="md:w-1/2 space-y-4">
@@ -387,38 +247,8 @@ const Login = () => {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => handleDeleteCode(code, false)}
+                            onClick={() => handleDeleteCode(code)}
                             disabled={code === "ADMIN2024"}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              <h3 className="text-lg font-medium mt-4">Codes OTP permanents</h3>
-              <div className="max-h-60 overflow-y-auto border rounded">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Nom</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(OTP_CODES).map(([code, details]) => (
-                      <TableRow key={code}>
-                        <TableCell className="font-medium">{code}</TableCell>
-                        <TableCell>{details.name}</TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleDeleteCode(code, true)}
                           >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
