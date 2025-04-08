@@ -35,7 +35,7 @@ const CustomNavigation = () => {
       path: "/questions",
       label: "Questions",
       icon: <FileQuestion className="w-4 h-4" />,
-      admin: true
+      admin: false
     },
     {
       path: "/quiz",
@@ -65,7 +65,7 @@ const CustomNavigation = () => {
       path: "/deployment",
       label: "Déploiement",
       icon: <QrCode className="w-4 h-4" />,
-      admin: true
+      admin: false
     },
     {
       path: "/access-codes",

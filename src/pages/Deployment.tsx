@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import QRCode from "react-qr-code";
-import { Copy, QrCode, Link as LinkIcon, Share2 } from "lucide-react";
+import { Copy, QrCode, Link as LinkIcon, Share2, ExternalLink } from "lucide-react";
 
 const Deployment = () => {
   const [appUrl, setAppUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
 
   useEffect(() => {
     // Get the current URL of the application
@@ -48,9 +49,68 @@ const Deployment = () => {
     }
   };
 
+  const handleOpenLink = () => {
+    window.open(appUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-3xl">
       <h1 className="text-2xl font-bold text-primary mb-6 text-center">Déploiement de l'application</h1>
+      
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ExternalLink className="h-5 w-5" />
+            Lien public
+          </CardTitle>
+          <CardDescription>
+            Votre application est actuellement {isPublic ? "publique" : "privée"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+            <p className="text-green-800 font-medium">Application déployée avec succès!</p>
+            <p className="text-green-700 text-sm mt-1">Le lien ci-dessous est accessible publiquement.</p>
+          </div>
+          
+          <div className="flex items-center">
+            <Input 
+              readOnly 
+              value={appUrl} 
+              className="flex-1 bg-gray-50"
+            />
+            <Button 
+              onClick={handleCopyLink}
+              variant="outline" 
+              size="icon"
+              className="ml-2"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button 
+              onClick={handleOpenLink}
+              variant="outline" 
+              size="icon"
+              className="ml-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </div>
+          {copied && (
+            <p className="text-sm text-green-600 mt-2">Copié!</p>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-end gap-2">
+          <Button onClick={handleShare} variant="outline">
+            <Share2 className="mr-2 h-4 w-4" />
+            Partager
+          </Button>
+          <Button onClick={handleOpenLink}>
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Ouvrir le lien
+          </Button>
+        </CardFooter>
+      </Card>
       
       <Tabs defaultValue="qrcode" className="w-full">
         <TabsList className="grid w-full grid-cols-2">

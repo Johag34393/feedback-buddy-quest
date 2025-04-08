@@ -64,26 +64,14 @@ const App = () => {
                 <Index />
               </ProtectedRoute>
             }>
-              <Route index element={<Navigate to="/notes" replace />} />
-              <Route path="questions" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <QuestionCreator />
-                </ProtectedRoute>
-              } />
+              <Route index element={<Navigate to="/quiz" replace />} />
+              <Route path="questions" element={<QuestionCreator />} />
               <Route path="quiz" element={<Quiz />} />
               <Route path="notes" element={<Notes />} />
               <Route path="revision" element={<Revision />} />
               <Route path="messages" element={<MessageCollection />} />
-              <Route path="deployment" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Deployment />
-                </ProtectedRoute>
-              } />
-              <Route path="access-codes" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <AccessCodeManager />
-                </ProtectedRoute>
-              } />
+              <Route path="deployment" element={<Deployment />} />
+              <Route path="access-codes" element={<AccessCodeManager />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
