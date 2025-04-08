@@ -22,61 +22,44 @@ const CustomNavigation = () => {
   const userString = localStorage.getItem("user");
   const user = userString ? JSON.parse(userString) : null;
   
-  const isAdmin = user?.role === "admin";
-  
-  // Définir les éléments du menu avec une indication claire de qui peut y accéder
+  // Définir les éléments du menu - tous accessibles à tous les utilisateurs
   const menuItems = [
-    // Éléments accessibles uniquement aux administrateurs
     {
       path: "/questions",
       label: "Questions",
-      icon: <FileQuestion className="w-4 h-4" />,
-      adminOnly: true
+      icon: <FileQuestion className="w-4 h-4" />
     },
     {
       path: "/notes",
       label: "Notes",
-      icon: <ClipboardCheck className="w-4 h-4" />,
-      adminOnly: true
+      icon: <ClipboardCheck className="w-4 h-4" />
     },
     {
       path: "/deployment",
       label: "Déploiement",
-      icon: <QrCode className="w-4 h-4" />,
-      adminOnly: true
+      icon: <QrCode className="w-4 h-4" />
     },
     {
       path: "/access-codes",
       label: "Codes d'accès",
-      icon: <KeyRound className="w-4 h-4" />,
-      adminOnly: true
+      icon: <KeyRound className="w-4 h-4" />
     },
-    
-    // Éléments accessibles à tous (administrateurs et agents)
     {
       path: "/quiz",
       label: "Quiz",
-      icon: <Clock className="w-4 h-4" />,
-      adminOnly: false
+      icon: <Clock className="w-4 h-4" />
     },
     {
       path: "/revision",
       label: "Révision",
-      icon: <BookOpen className="w-4 h-4" />,
-      adminOnly: false
+      icon: <BookOpen className="w-4 h-4" />
     },
     {
       path: "/messages",
       label: "Messages",
-      icon: <MessageSquare className="w-4 h-4" />,
-      adminOnly: false
+      icon: <MessageSquare className="w-4 h-4" />
     },
   ];
-  
-  // Filtrer les éléments du menu selon le rôle de l'utilisateur
-  const filteredMenuItems = menuItems.filter(item => 
-    !item.adminOnly || (item.adminOnly && isAdmin)
-  );
   
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -89,13 +72,13 @@ const CustomNavigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link to={isAdmin ? "/" : "/quiz"} className="text-lg font-bold text-primary">
+            <Link to="/quiz" className="text-lg font-bold text-primary">
               EPHATA
             </Link>
           </div>
           
           <nav className="hidden md:flex space-x-1">
-            {filteredMenuItems.map((item) => (
+            {menuItems.map((item) => (
               <Link 
                 key={item.path}
                 to={item.path}
@@ -131,7 +114,7 @@ const CustomNavigation = () => {
         
         {/* Navigation mobile */}
         <div className="md:hidden overflow-x-auto pb-2 flex space-x-1">
-          {filteredMenuItems.map((item) => (
+          {menuItems.map((item) => (
             <Link 
               key={item.path}
               to={item.path}

@@ -16,31 +16,15 @@ const Index = () => {
       return;
     }
     
-    // Obtenir le rôle de l'utilisateur
-    const user = JSON.parse(userString);
-    
-    // Pour les agents (non-admin), les rediriger correctement
-    if (user.role !== "admin") {
-      // Les pages autorisées pour les agents
-      const allowedAgentPaths = ["/quiz", "/revision", "/messages"];
-      
-      // Si on est sur la page d'accueil ou sur une page non autorisée, rediriger vers le quiz
-      if (location.pathname === "/" || location.pathname === "") {
-        navigate("/quiz");
-        return;
-      }
-      
-      // Vérifier si l'utilisateur essaie d'accéder à une page non autorisée
-      const currentMainPath = "/" + location.pathname.split("/")[1];
-      if (!allowedAgentPaths.includes(currentMainPath)) {
-        // Rediriger vers le quiz si la page actuelle n'est pas autorisée
-        navigate("/quiz");
-      }
+    // Si on est sur la page d'accueil, rediriger vers le quiz
+    if (location.pathname === "/" || location.pathname === "") {
+      navigate("/quiz");
+      return;
     }
     
     // Vérifier si les questions existent pour l'utilisateur
     const hasQuestions = !!localStorage.getItem("questionSets");
-    if (!hasQuestions && user.role !== "admin") {
+    if (!hasQuestions) {
       toast.info("Aucune question n'est disponible. Contactez l'administrateur.", {
         duration: 5000
       });

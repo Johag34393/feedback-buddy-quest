@@ -18,8 +18,8 @@ import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 
-// Composant amélioré pour protéger les routes
-const ProtectedRoute = ({ children, requireAdmin = false, visitorAllowed = false }) => {
+// Composant simplifié pour protéger les routes - sans restrictions pour les visiteurs
+const ProtectedRoute = ({ children }) => {
   const userString = localStorage.getItem("user");
   
   // Si l'utilisateur n'est pas connecté, rediriger vers la page de connexion
@@ -27,19 +27,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, visitorAllowed = false
     return <Navigate to="/login" replace />;
   }
   
-  const user = JSON.parse(userString);
-  
-  // Si la route requiert des droits d'admin et que l'utilisateur n'est pas admin
-  if (requireAdmin && user.role !== "admin") {
-    return <Navigate to="/quiz" replace />;
-  }
-  
-  // Si la route n'est pas autorisée pour les agents et que l'utilisateur n'est pas admin
-  if (!visitorAllowed && user.role !== "admin") {
-    return <Navigate to="/quiz" replace />;
-  }
-  
-  // Sinon, afficher le contenu normalement
+  // Pour tous les utilisateurs connectés, afficher le contenu
   return children;
 };
 
@@ -78,44 +66,14 @@ const App = () => {
                 <Navigate to="/quiz" replace />
               } />
               
-              {/* Routes pour administrateur uniquement */}
-              <Route path="questions" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <QuestionCreator />
-                </ProtectedRoute>
-              } />
-              <Route path="notes" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Notes />
-                </ProtectedRoute>
-              } />
-              <Route path="deployment" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Deployment />
-                </ProtectedRoute>
-              } />
-              <Route path="access-codes" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <AccessCodeManager />
-                </ProtectedRoute>
-              } />
-              
-              {/* Routes accessibles aux agents */}
-              <Route path="quiz" element={
-                <ProtectedRoute visitorAllowed={true}>
-                  <Quiz />
-                </ProtectedRoute>
-              } />
-              <Route path="revision" element={
-                <ProtectedRoute visitorAllowed={true}>
-                  <Revision />
-                </ProtectedRoute>
-              } />
-              <Route path="messages" element={
-                <ProtectedRoute visitorAllowed={true}>
-                  <MessageCollection />
-                </ProtectedRoute>
-              } />
+              {/* Toutes les routes sont accessibles à tous les utilisateurs connectés */}
+              <Route path="questions" element={<QuestionCreator />} />
+              <Route path="notes" element={<Notes />} />
+              <Route path="deployment" element={<Deployment />} />
+              <Route path="access-codes" element={<AccessCodeManager />} />
+              <Route path="quiz" element={<Quiz />} />
+              <Route path="revision" element={<Revision />} />
+              <Route path="messages" element={<MessageCollection />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
