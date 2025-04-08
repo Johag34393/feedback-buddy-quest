@@ -73,9 +73,11 @@ const App = () => {
                 <Index />
               </ProtectedRoute>
             }>
+              {/* Redirect root to quiz for everyone */}
               <Route index element={
                 <Navigate to="/quiz" replace />
               } />
+              
               {/* Routes pour administrateur uniquement */}
               <Route path="questions" element={
                 <ProtectedRoute requireAdmin={true}>

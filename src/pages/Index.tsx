@@ -24,8 +24,8 @@ const Index = () => {
       // Les pages autorisées pour les agents
       const allowedAgentPaths = ["/quiz", "/revision", "/messages"];
       
-      // Si on est sur la page d'accueil, rediriger vers le quiz
-      if (location.pathname === "/") {
+      // Si on est sur la page d'accueil ou sur une page non autorisée, rediriger vers le quiz
+      if (location.pathname === "/" || location.pathname === "") {
         navigate("/quiz");
         return;
       }
