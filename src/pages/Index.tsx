@@ -11,18 +11,6 @@ const Index = () => {
     const userString = localStorage.getItem("user");
     if (!userString) {
       navigate("/login");
-      return;
-    }
-    
-    // Rediriger vers la page appropriée en fonction du rôle
-    const user = JSON.parse(userString);
-    if (user.role === "admin") {
-      // Les administrateurs vont à la page de leur choix
-    } else {
-      // Les visiteurs sont redirigés vers la page Quiz
-      if (location.pathname === "/") {
-        navigate("/quiz");
-      }
     }
   }, [navigate]);
 
