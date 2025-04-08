@@ -18,19 +18,6 @@ import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 
-// Composant simplifié pour protéger les routes - sans restrictions pour les visiteurs
-const ProtectedRoute = ({ children }) => {
-  const userString = localStorage.getItem("user");
-  
-  // Si l'utilisateur n'est pas connecté, rediriger vers la page de connexion
-  if (!userString) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  // Pour tous les utilisateurs connectés, afficher le contenu
-  return children;
-};
-
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
@@ -56,17 +43,13 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            }>
-              {/* Redirect root to quiz for everyone */}
-              <Route index element={
-                <Navigate to="/quiz" replace />
-              } />
+            
+            {/* Base route */}
+            <Route path="/" element={<Index />}>
+              {/* Redirect root to quiz */}
+              <Route index element={<Quiz />} />
               
-              {/* Toutes les routes sont accessibles à tous les utilisateurs connectés */}
+              {/* All routes accessible to all authenticated users */}
               <Route path="questions" element={<QuestionCreator />} />
               <Route path="notes" element={<Notes />} />
               <Route path="deployment" element={<Deployment />} />
@@ -75,6 +58,7 @@ const App = () => {
               <Route path="revision" element={<Revision />} />
               <Route path="messages" element={<MessageCollection />} />
             </Route>
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

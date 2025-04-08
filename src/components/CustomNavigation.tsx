@@ -22,7 +22,7 @@ const CustomNavigation = () => {
   const userString = localStorage.getItem("user");
   const user = userString ? JSON.parse(userString) : null;
   
-  // Définir les éléments du menu - tous accessibles à tous les utilisateurs
+  // All menu items visible to all users
   const menuItems = [
     {
       path: "/questions",

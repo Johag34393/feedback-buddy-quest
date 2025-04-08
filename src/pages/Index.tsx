@@ -17,9 +17,8 @@ const Index = () => {
     }
     
     // Si on est sur la page d'accueil, rediriger vers le quiz
-    if (location.pathname === "/" || location.pathname === "") {
+    if (location.pathname === "/") {
       navigate("/quiz");
-      return;
     }
     
     // Vérifier si les questions existent pour l'utilisateur
