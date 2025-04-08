@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { 
@@ -13,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Clock, CheckCircle, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
 
 interface QuestionOption {
   id: string;
@@ -34,12 +34,6 @@ interface QuestionSet {
   createdAt: string;
 }
 
-const formatTime = (seconds: number): string => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
-};
-
 const Quiz = () => {
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
   const [selectedSet, setSelectedSet] = useState<QuestionSet | null>(null);
@@ -49,7 +43,7 @@ const Quiz = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(189); // 189 seconds timer
   const [isLoading, setIsLoading] = useState(true);
-  const { toast: uiToast } = useToast();
+  const { toast } = useToast();
 
   useEffect(() => {
     const savedQuestionSets = localStorage.getItem("questionSets");
@@ -60,16 +54,34 @@ const Quiz = () => {
       const setsWithQuestions = parsedSets.filter((set: QuestionSet) => set.questions.length > 0);
       if (setsWithQuestions.length > 0) {
         setSelectedSet(setsWithQuestions[0]);
-        
-        const allQuestions = [];
-        for (const set of setsWithQuestions) {
-          allQuestions.push(...set.questions);
-        }
-        localStorage.setItem("quizQuestions", JSON.stringify(allQuestions));
       }
     }
     setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (!quizCompleted && selectedSet) {
+      const timer = setInterval(() => {
+        setTimeRemaining(prevTime => {
+          if (prevTime <= 1) {
+            clearInterval(timer);
+            handleTimeUp();
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }
+  }, [quizCompleted, selectedSet]);
+
+  // Format time as MM:SS
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  };
 
   const handleNext = () => {
     if (selectedSet && currentQuestionIndex < selectedSet.questions.length - 1) {
@@ -114,7 +126,7 @@ const Quiz = () => {
     setScore(finalScore);
     setQuizCompleted(true);
     
-    uiToast({
+    toast({
       title: "Quiz terminé !",
       description: `Votre score: ${finalScore}/${selectedSet.questions.length * 2} points`,
     });
@@ -127,7 +139,7 @@ const Quiz = () => {
     setScore(finalScore);
     setQuizCompleted(true);
     
-    uiToast({
+    toast({
       title: "Temps écoulé !",
       description: `Votre score final est de ${finalScore}/${selectedSet.questions.length * 2} points`,
       variant: "destructive",

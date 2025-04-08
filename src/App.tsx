@@ -18,6 +18,28 @@ import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient();
 
+const ProtectedRoute = ({ children, requireAdmin = false, visitorAllowed = false }) => {
+  const userString = localStorage.getItem("user");
+  
+  if (!userString) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  const user = JSON.parse(userString);
+  
+  // Si la route requiert des droits d'admin et que l'utilisateur n'est pas admin
+  if (requireAdmin && user.role !== "admin") {
+    return <Navigate to="/quiz" replace />;
+  }
+  
+  // Si la route n'est pas autorisée pour les visiteurs et que l'utilisateur n'est pas admin
+  if (!visitorAllowed && user.role !== "admin") {
+    return <Navigate to="/quiz" replace />;
+  }
+  
+  return children;
+};
+
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
@@ -43,22 +65,48 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            
-            {/* Base route */}
-            <Route path="/" element={<Index />}>
-              {/* Redirect root to quiz */}
-              <Route index element={<Quiz />} />
-              
-              {/* All routes accessible to all authenticated users */}
-              <Route path="questions" element={<QuestionCreator />} />
-              <Route path="notes" element={<Notes />} />
-              <Route path="deployment" element={<Deployment />} />
-              <Route path="access-codes" element={<AccessCodeManager />} />
-              <Route path="quiz" element={<Quiz />} />
-              <Route path="revision" element={<Revision />} />
-              <Route path="messages" element={<MessageCollection />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            }>
+              <Route index element={<Navigate to="/quiz" replace />} />
+              <Route path="questions" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <QuestionCreator />
+                </ProtectedRoute>
+              } />
+              <Route path="quiz" element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <Quiz />
+                </ProtectedRoute>
+              } />
+              <Route path="notes" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Notes />
+                </ProtectedRoute>
+              } />
+              <Route path="revision" element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <Revision />
+                </ProtectedRoute>
+              } />
+              <Route path="messages" element={
+                <ProtectedRoute visitorAllowed={true}>
+                  <MessageCollection />
+                </ProtectedRoute>
+              } />
+              <Route path="deployment" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Deployment />
+                </ProtectedRoute>
+              } />
+              <Route path="access-codes" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AccessCodeManager />
+                </ProtectedRoute>
+              } />
             </Route>
-            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

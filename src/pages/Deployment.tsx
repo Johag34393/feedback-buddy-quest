@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import QRCode from "react-qr-code";
-import { Copy, QrCode, Link as LinkIcon, Share2, Info } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Copy, QrCode, Link as LinkIcon, Share2 } from "lucide-react";
 
 const Deployment = () => {
   const [appUrl, setAppUrl] = useState("");
@@ -52,13 +51,6 @@ const Deployment = () => {
   return (
     <div className="container mx-auto p-4 max-w-3xl">
       <h1 className="text-2xl font-bold text-primary mb-6 text-center">Déploiement de l'application</h1>
-      
-      <Alert className="mb-6 bg-blue-50 border-blue-200">
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          Les visiteurs pourront accéder uniquement aux sections Quiz, Révision et Messages. Assurez-vous que le contenu est prêt avant de partager l'application.
-        </AlertDescription>
-      </Alert>
       
       <Tabs defaultValue="qrcode" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -136,8 +128,8 @@ const Deployment = () => {
                 <ol className="list-decimal pl-5 text-sm space-y-2">
                   <li>Partagez le lien ci-dessus avec les utilisateurs</li>
                   <li>Les utilisateurs devront se connecter avec un code d'accès ou OTP</li>
-                  <li>Les visiteurs auront accès aux sections Quiz, Révision et Messages</li>
-                  <li>Pour générer des codes, utilisez la section "Codes d'accès" dans le menu admin</li>
+                  <li>Assurez-vous que les visiteurs ont les codes nécessaires</li>
+                  <li>Pour générer des codes, connectez-vous avec le compte administrateur</li>
                 </ol>
               </div>
             </CardContent>

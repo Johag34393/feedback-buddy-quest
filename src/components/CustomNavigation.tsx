@@ -14,7 +14,7 @@ import {
   ClipboardCheck,
   Clock
 } from "lucide-react";
-import { toast } from "@/utils/toastUtils";
+import { toast } from "sonner";
 
 const CustomNavigation = () => {
   const navigate = useNavigate();
@@ -22,44 +22,56 @@ const CustomNavigation = () => {
   const userString = localStorage.getItem("user");
   const user = userString ? JSON.parse(userString) : null;
   
-  // All menu items visible to all users
+  const isAdmin = user?.role === "admin";
+  
   const menuItems = [
     {
       path: "/questions",
       label: "Questions",
-      icon: <FileQuestion className="w-4 h-4" />
-    },
-    {
-      path: "/notes",
-      label: "Notes",
-      icon: <ClipboardCheck className="w-4 h-4" />
-    },
-    {
-      path: "/deployment",
-      label: "Déploiement",
-      icon: <QrCode className="w-4 h-4" />
-    },
-    {
-      path: "/access-codes",
-      label: "Codes d'accès",
-      icon: <KeyRound className="w-4 h-4" />
+      icon: <FileQuestion className="w-4 h-4" />,
+      admin: true
     },
     {
       path: "/quiz",
       label: "Quiz",
-      icon: <Clock className="w-4 h-4" />
+      icon: <Clock className="w-4 h-4" />,
+      admin: false
+    },
+    {
+      path: "/notes",
+      label: "Notes",
+      icon: <ClipboardCheck className="w-4 h-4" />,
+      admin: true
     },
     {
       path: "/revision",
       label: "Révision",
-      icon: <BookOpen className="w-4 h-4" />
+      icon: <BookOpen className="w-4 h-4" />,
+      admin: false
     },
     {
       path: "/messages",
       label: "Messages",
-      icon: <MessageSquare className="w-4 h-4" />
+      icon: <MessageSquare className="w-4 h-4" />,
+      admin: false
+    },
+    {
+      path: "/deployment",
+      label: "Déploiement",
+      icon: <QrCode className="w-4 h-4" />,
+      admin: true
+    },
+    {
+      path: "/access-codes",
+      label: "Codes d'accès",
+      icon: <KeyRound className="w-4 h-4" />,
+      admin: true
     },
   ];
+  
+  const filteredMenuItems = menuItems.filter(item => 
+    !item.admin || (item.admin && isAdmin)
+  );
   
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -72,19 +84,19 @@ const CustomNavigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link to="/quiz" className="text-lg font-bold text-primary">
+            <Link to="/" className="text-lg font-bold text-primary">
               EPHATA
             </Link>
           </div>
           
           <nav className="hidden md:flex space-x-1">
-            {menuItems.map((item) => (
+            {filteredMenuItems.map((item) => (
               <Link 
                 key={item.path}
                 to={item.path}
               >
                 <Button
-                  variant={location.pathname.startsWith(item.path) ? "default" : "ghost"}
+                  variant={location.pathname === item.path ? "default" : "ghost"}
                   size="sm"
                   className="flex items-center gap-1"
                 >
@@ -114,14 +126,14 @@ const CustomNavigation = () => {
         
         {/* Navigation mobile */}
         <div className="md:hidden overflow-x-auto pb-2 flex space-x-1">
-          {menuItems.map((item) => (
+          {filteredMenuItems.map((item) => (
             <Link 
               key={item.path}
               to={item.path}
               className="flex-shrink-0"
             >
               <Button
-                variant={location.pathname.startsWith(item.path) ? "default" : "ghost"}
+                variant={location.pathname === item.path ? "default" : "ghost"}
                 size="sm"
                 className="whitespace-nowrap flex items-center gap-1"
               >

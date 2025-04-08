@@ -1,12 +1,10 @@
 
 import React, { useEffect } from "react";
 import CustomNavigation from "@/components/CustomNavigation";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { toast } from "sonner";
+import { Outlet, useNavigate } from "react-router-dom";
 
 const Index = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   
   useEffect(() => {
     // Vérifier si l'utilisateur est connecté
@@ -16,24 +14,22 @@ const Index = () => {
       return;
     }
     
-    // Si on est sur la page d'accueil, rediriger vers le quiz
-    if (location.pathname === "/") {
-      navigate("/quiz");
+    // Rediriger vers la page appropriée en fonction du rôle
+    const user = JSON.parse(userString);
+    if (user.role === "admin") {
+      // Les administrateurs vont à la page de leur choix
+    } else {
+      // Les visiteurs sont redirigés vers la page Quiz
+      if (location.pathname === "/") {
+        navigate("/quiz");
+      }
     }
-    
-    // Vérifier si les questions existent pour l'utilisateur
-    const hasQuestions = !!localStorage.getItem("questionSets");
-    if (!hasQuestions) {
-      toast.info("Aucune question n'est disponible. Contactez l'administrateur.", {
-        duration: 5000
-      });
-    }
-  }, [navigate, location.pathname]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomNavigation />
-      <main className="container mx-auto pt-4 px-4">
+      <main>
         <Outlet />
       </main>
     </div>
