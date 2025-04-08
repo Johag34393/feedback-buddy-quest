@@ -94,16 +94,36 @@ const AccessCodeManager = () => {
       return;
     }
 
-    // Générer un code aléatoire
-    const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Trouver le nombre de codes existants qui commencent par VISIT
+    const existingVisitCodes = Object.keys(ACCESS_CODES).filter(code => 
+      code.startsWith('VISIT')
+    );
+    
+    // Déterminer le prochain numéro à utiliser
+    let nextNumber = 1;
+    if (existingVisitCodes.length > 0) {
+      // Extraire les numéros des codes existants
+      const existingNumbers = existingVisitCodes.map(code => {
+        const numPart = code.substring(5); // Extraire la partie numérique
+        return parseInt(numPart, 10);
+      });
+      
+      // Trouver le numéro maximum
+      const maxNumber = Math.max(...existingNumbers);
+      nextNumber = maxNumber + 1;
+    }
+    
+    // Formater le nouveau code avec le numéro séquentiel (format VISIT001)
+    const formattedNumber = nextNumber.toString().padStart(3, '0');
+    const newCode = `VISIT${formattedNumber}`;
     
     // Ajouter ce code à la liste
     setAccessCodes(prevCodes => ({
       ...prevCodes,
-      [randomCode]: { role: newCodeRole, name: newCodeName }
+      [newCode]: { role: newCodeRole, name: newCodeName }
     }));
     
-    setGeneratedCode(randomCode);
+    setGeneratedCode(newCode);
     toast.success(`Code d'accès généré pour ${newCodeName}`);
   };
 
