@@ -96,14 +96,23 @@ const Login = () => {
   }, [OTP_CODES]);
 
   const handleLogin = () => {
+    // Récupérer les derniers codes d'accès depuis localStorage
+    const currentAccessCodes = localStorage.getItem("accessCodes") 
+      ? JSON.parse(localStorage.getItem("accessCodes")!) 
+      : initializeAccessCodes();
+    
+    const currentOTPCodes = localStorage.getItem("otpCodes")
+      ? JSON.parse(localStorage.getItem("otpCodes")!)
+      : initializeOTPCodes();
+
     if (useOTP) {
       if (otpValue.length !== 4) {
         toast.error("Veuillez saisir un code à 4 chiffres");
         return;
       }
 
-      // Check OTP code
-      const otpDetails = OTP_CODES[otpValue];
+      // Check OTP code against current OTP codes
+      const otpDetails = currentOTPCodes[otpValue];
       if (otpDetails) {
         handleSuccessfulLogin(otpDetails, true);
       } else {
@@ -115,7 +124,8 @@ const Login = () => {
         return;
       }
 
-      const userDetails = ACCESS_CODES[accessCode];
+      // Check access code against current access codes
+      const userDetails = currentAccessCodes[accessCode];
       
       if (userDetails) {
         handleSuccessfulLogin(userDetails, false);

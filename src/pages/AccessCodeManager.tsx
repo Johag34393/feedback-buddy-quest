@@ -67,11 +67,15 @@ const AccessCodeManager = () => {
 
   // Sauvegarder les codes dans localStorage quand ils changent
   useEffect(() => {
-    localStorage.setItem("accessCodes", JSON.stringify(ACCESS_CODES));
+    if (Object.keys(ACCESS_CODES).length > 0) {
+      localStorage.setItem("accessCodes", JSON.stringify(ACCESS_CODES));
+    }
   }, [ACCESS_CODES]);
 
   useEffect(() => {
-    localStorage.setItem("otpCodes", JSON.stringify(OTP_CODES));
+    if (Object.keys(OTP_CODES).length > 0) {
+      localStorage.setItem("otpCodes", JSON.stringify(OTP_CODES));
+    }
   }, [OTP_CODES]);
 
   // Vérifier que l'utilisateur est administrateur
@@ -117,11 +121,15 @@ const AccessCodeManager = () => {
     const formattedNumber = nextNumber.toString().padStart(3, '0');
     const newCode = `VISIT${formattedNumber}`;
     
-    // Ajouter ce code à la liste
-    setAccessCodes(prevCodes => ({
-      ...prevCodes,
+    // Créer la nouvelle version des codes d'accès incluant le nouveau code
+    const updatedAccessCodes = {
+      ...ACCESS_CODES,
       [newCode]: { role: newCodeRole, name: newCodeName }
-    }));
+    };
+    
+    // Mettre à jour l'état et sauvegarder dans localStorage
+    setAccessCodes(updatedAccessCodes);
+    localStorage.setItem("accessCodes", JSON.stringify(updatedAccessCodes));
     
     setGeneratedCode(newCode);
     toast.success(`Code d'accès généré pour ${newCodeName}`);
