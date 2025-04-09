@@ -28,13 +28,10 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Trash2, AlertCircle } from "lucide-react";
+import { Trash2, AlertCircle, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
-
-interface UserDetails {
-  role: string;
-  name: string;
-}
+import { verifyAccessCode, initializeDefaultCodes, getAllAccessCodes, getAllOTPCodes, addAccessCode, deleteAccessCode } from "@/services/accessCodeService";
+import { UserDetails } from "@/lib/supabase";
 
 interface AccessCodes {
   [key: string]: UserDetails;
@@ -44,31 +41,9 @@ interface OTPCodes {
   [key: string]: UserDetails;
 }
 
-const initializeAccessCodes = (): AccessCodes => {
-  const storedCodes = localStorage.getItem("accessCodes");
-  if (storedCodes) {
-    return JSON.parse(storedCodes);
-  }
-  return {
-    "ADMIN2024": { role: "admin", name: "Administrateur" },
-    "VISIT001": { role: "visitor", name: "Visiteur 1" },
-    "VISIT002": { role: "visitor", name: "Visiteur 2" },
-  };
-};
-
-const initializeOTPCodes = (): OTPCodes => {
-  const storedOTPCodes = localStorage.getItem("otpCodes");
-  if (storedOTPCodes) {
-    return JSON.parse(storedOTPCodes);
-  }
-  return {
-    "1234": { role: "visitor", name: "Visiteur OTP 1" },
-  };
-};
-
 const Login = () => {
-  const [accessCodes, setAccessCodes] = useState<AccessCodes>(initializeAccessCodes());
-  const [otpCodes, setOTPCodes] = useState<OTPCodes>(initializeOTPCodes());
+  const [accessCodes, setAccessCodes] = useState<AccessCodes>({});
+  const [otpCodes, setOTPCodes] = useState<OTPCodes>({});
   const [accessCode, setAccessCode] = useState("");
   const [useOTP, setUseOTP] = useState(false);
   const [otpValue, setOtpValue] = useState("");
@@ -80,61 +55,67 @@ const Login = () => {
   const [newOTPName, setNewOTPName] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [codeToDelete, setCodeToDelete] = useState<{ code: string, isOTP: boolean }>({ code: "", isOTP: false });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const refreshCodes = () => {
-      const storedCodes = localStorage.getItem("accessCodes");
-      if (storedCodes) {
-        setAccessCodes(JSON.parse(storedCodes));
-      }
-
-      const storedOTPCodes = localStorage.getItem("otpCodes");
-      if (storedOTPCodes) {
-        setOTPCodes(JSON.parse(storedOTPCodes));
+    const initializeApp = async () => {
+      try {
+        setIsLoading(true);
+        await initializeDefaultCodes();
+        const accessCodesData = await getAllAccessCodes();
+        const otpCodesData = await getAllOTPCodes();
+        setAccessCodes(accessCodesData);
+        setOTPCodes(otpCodesData);
+      } catch (error) {
+        console.error("Erreur lors de l'initialisation:", error);
+        toast.error("Erreur lors du chargement des codes d'accès");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    refreshCodes();
-
-    window.addEventListener("storage", refreshCodes);
-    return () => {
-      window.removeEventListener("storage", refreshCodes);
-    };
+    initializeApp();
   }, []);
 
-  const handleLogin = () => {
-    if (useOTP) {
-      if (otpValue.length !== 4) {
-        toast.error("Veuillez saisir un code à 4 chiffres");
-        return;
-      }
+  const handleLogin = async () => {
+    if (isAuthenticating) return;
+    
+    setIsAuthenticating(true);
+    
+    try {
+      if (useOTP) {
+        if (otpValue.length !== 4) {
+          toast.error("Veuillez saisir un code à 4 chiffres");
+          return;
+        }
 
-      const otpDetails = otpCodes[otpValue];
-      if (otpDetails) {
-        handleSuccessfulLogin(otpDetails, true);
+        const userDetails = await verifyAccessCode(otpValue);
+        if (userDetails) {
+          handleSuccessfulLogin(userDetails, true);
+        } else {
+          toast.error("Code OTP invalide");
+        }
       } else {
-        toast.error("Code OTP invalide");
-      }
-    } else {
-      if (accessCode.trim() === "") {
-        toast.error("Veuillez saisir un code d'accès");
-        return;
-      }
+        if (accessCode.trim() === "") {
+          toast.error("Veuillez saisir un code d'accès");
+          return;
+        }
 
-      const currentAccessCodes = localStorage.getItem("accessCodes") 
-        ? JSON.parse(localStorage.getItem("accessCodes")!) 
-        : initializeAccessCodes();
-
-      const userDetails = currentAccessCodes[accessCode];
-      
-      if (userDetails) {
-        handleSuccessfulLogin(userDetails, false);
-      } else {
-        console.log("Code invalide:", accessCode);
-        console.log("Codes disponibles:", currentAccessCodes);
-        toast.error("Code d'accès invalide");
+        const userDetails = await verifyAccessCode(accessCode);
+        if (userDetails) {
+          handleSuccessfulLogin(userDetails, false);
+        } else {
+          console.log("Code invalide:", accessCode);
+          toast.error("Code d'accès invalide");
+        }
       }
+    } catch (error) {
+      console.error("Erreur lors de la connexion:", error);
+      toast.error("Erreur lors de la connexion");
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -149,35 +130,48 @@ const Login = () => {
     navigate("/");
   };
 
-  const handleAdminLogin = () => {
+  const handleAdminLogin = async () => {
     if (accessCode === "ADMIN2024") {
-      setShowAdminPanel(true);
+      try {
+        const accessCodesData = await getAllAccessCodes();
+        const otpCodesData = await getAllOTPCodes();
+        setAccessCodes(accessCodesData);
+        setOTPCodes(otpCodesData);
+        setShowAdminPanel(true);
+      } catch (error) {
+        console.error("Erreur lors du chargement des codes:", error);
+        toast.error("Erreur lors du chargement des codes d'accès");
+      }
     } else {
       toast.error("Accès non autorisé");
     }
   };
 
-  const generateAccessCode = () => {
+  const generateAccessCode = async () => {
     if (!newCodeName.trim()) {
       toast.error("Veuillez saisir un nom pour le visiteur");
       return;
     }
 
-    const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    
-    const updatedAccessCodes = {
-      ...accessCodes,
-      [randomCode]: { role: newCodeRole, name: newCodeName }
-    };
-    
-    setAccessCodes(updatedAccessCodes);
-    localStorage.setItem("accessCodes", JSON.stringify(updatedAccessCodes));
-    
-    setGeneratedCode(randomCode);
-    toast.success(`Code d'accès généré pour ${newCodeName}`);
+    try {
+      const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      await addAccessCode(randomCode, { role: newCodeRole, name: newCodeName }, 'permanent');
+      
+      setAccessCodes(prevCodes => ({
+        ...prevCodes,
+        [randomCode]: { role: newCodeRole, name: newCodeName }
+      }));
+      
+      setGeneratedCode(randomCode);
+      toast.success(`Code d'accès généré pour ${newCodeName}`);
+    } catch (error) {
+      console.error("Erreur lors de la génération du code:", error);
+      toast.error("Erreur lors de la génération du code d'accès");
+    }
   };
 
-  const generateOTPCode = () => {
+  const generateOTPCode = async () => {
     if (!newOTPName.trim()) {
       toast.error("Veuillez saisir un nom pour l'utilisateur OTP");
       return;
@@ -188,17 +182,21 @@ const Login = () => {
       return;
     }
 
-    const updatedOTPCodes = {
-      ...otpCodes,
-      [newOTPCode]: { role: "visitor", name: newOTPName }
-    };
+    try {
+      await addAccessCode(newOTPCode, { role: "visitor", name: newOTPName }, 'otp');
+      
+      setOTPCodes(prevCodes => ({
+        ...prevCodes,
+        [newOTPCode]: { role: "visitor", name: newOTPName }
+      }));
 
-    setOTPCodes(updatedOTPCodes);
-    localStorage.setItem("otpCodes", JSON.stringify(updatedOTPCodes));
-
-    toast.success(`Code OTP permanent généré pour ${newOTPName}`);
-    setNewOTPCode("");
-    setNewOTPName("");
+      toast.success(`Code OTP permanent généré pour ${newOTPName}`);
+      setNewOTPCode("");
+      setNewOTPName("");
+    } catch (error) {
+      console.error("Erreur lors de la génération du code OTP:", error);
+      toast.error("Erreur lors de la génération du code OTP");
+    }
   };
 
   const handleDeleteCode = (code: string, isOTP: boolean) => {
@@ -206,35 +204,55 @@ const Login = () => {
     setShowDeleteDialog(true);
   };
 
-  const confirmDeleteCode = () => {
+  const confirmDeleteCode = async () => {
     const { code, isOTP } = codeToDelete;
     
-    if (isOTP) {
-      if (code === "1234" && Object.keys(otpCodes).length === 1) {
-        toast.error("Impossible de supprimer le dernier code OTP par défaut");
+    try {
+      if (isOTP) {
+        if (code === "1234" && Object.keys(otpCodes).length === 1) {
+          toast.error("Impossible de supprimer le dernier code OTP par défaut");
+        } else {
+          await deleteAccessCode(code);
+          setOTPCodes(prevCodes => {
+            const newCodes = { ...prevCodes };
+            delete newCodes[code];
+            return newCodes;
+          });
+          toast.success("Code OTP révoqué avec succès");
+        }
       } else {
-        const newCodes = { ...otpCodes };
-        delete newCodes[code];
-        setOTPCodes(newCodes);
-        localStorage.setItem("otpCodes", JSON.stringify(newCodes));
-        toast.success("Code OTP révoqué avec succès");
+        if (code === "ADMIN2024") {
+          toast.error("Impossible de supprimer le code administrateur");
+        } else if ((code === "VISIT001" || code === "VISIT002") && Object.keys(accessCodes).length <= 3) {
+          toast.error("Impossible de supprimer les codes visiteurs par défaut");
+        } else {
+          await deleteAccessCode(code);
+          setAccessCodes(prevCodes => {
+            const newCodes = { ...prevCodes };
+            delete newCodes[code];
+            return newCodes;
+          });
+          toast.success("Code d'accès révoqué avec succès");
+        }
       }
-    } else {
-      if (code === "ADMIN2024") {
-        toast.error("Impossible de supprimer le code administrateur");
-      } else if ((code === "VISIT001" || code === "VISIT002") && Object.keys(accessCodes).length <= 3) {
-        toast.error("Impossible de supprimer les codes visiteurs par défaut");
-      } else {
-        const newCodes = { ...accessCodes };
-        delete newCodes[code];
-        setAccessCodes(newCodes);
-        localStorage.setItem("accessCodes", JSON.stringify(newCodes));
-        toast.success("Code d'accès révoqué avec succès");
-      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression du code:", error);
+      toast.error("Erreur lors de la révocation du code");
     }
     
     setShowDeleteDialog(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-100 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p>Chargement des codes d'accès...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-100 flex flex-col items-center justify-center p-4">
