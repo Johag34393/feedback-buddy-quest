@@ -1,14 +1,14 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Utilisation des variables d'environnement de Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Using hardcoded Supabase credentials
+const supabaseUrl = "https://kwrmkqihdxkpkiewxhec.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3cm1rcWloZHhrcGtpZXd4aGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMTA2NzcsImV4cCI6MjA1OTc4NjY3N30.wEdqNMzAro9L-ZYQyAwIYnPGdP682wndJjJwP10n68o";
 
-// Vérifie si les variables d'environnement sont disponibles
+// Vérification des variables (par précaution)
 const isSupabaseConfigured = supabaseUrl && supabaseAnonKey;
 
-// Création du client Supabase avec gestion des variables manquantes
+// Création du client Supabase
 export const supabase = isSupabaseConfigured 
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
