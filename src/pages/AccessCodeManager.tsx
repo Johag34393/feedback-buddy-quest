@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,13 +25,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Copy, KeyRound, Shield } from "lucide-react";
-import { UserDetails } from "@/lib/supabase";
-import { 
-  getAllAccessCodes, 
-  getAllOTPCodes, 
-  addAccessCode, 
-  deleteAccessCode 
-} from "@/services/accessCodeService";
+
+// Réutiliser les types définis dans Login.tsx
+interface UserDetails {
+  role: string;
+  name: string;
+}
 
 interface AccessCodes {
   [key: string]: UserDetails;
@@ -51,27 +51,28 @@ const AccessCodeManager = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [codeToDelete, setCodeToDelete] = useState<{ code: string, isOTP: boolean }>({ code: "", isOTP: false });
   const [activeTab, setActiveTab] = useState("access");
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Charger les codes depuis Supabase
+  // Charger les codes depuis localStorage
   useEffect(() => {
-    const loadCodes = async () => {
-      try {
-        setIsLoading(true);
-        const accessCodes = await getAllAccessCodes();
-        const otpCodes = await getAllOTPCodes();
-        setAccessCodes(accessCodes);
-        setOTPCodes(otpCodes);
-      } catch (error) {
-        console.error("Erreur lors du chargement des codes:", error);
-        toast.error("Erreur lors du chargement des codes d'accès");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    const storedCodes = localStorage.getItem("accessCodes");
+    if (storedCodes) {
+      setAccessCodes(JSON.parse(storedCodes));
+    }
 
-    loadCodes();
+    const storedOTPCodes = localStorage.getItem("otpCodes");
+    if (storedOTPCodes) {
+      setOTPCodes(JSON.parse(storedOTPCodes));
+    }
   }, []);
+
+  // Sauvegarder les codes dans localStorage quand ils changent
+  useEffect(() => {
+    localStorage.setItem("accessCodes", JSON.stringify(ACCESS_CODES));
+  }, [ACCESS_CODES]);
+
+  useEffect(() => {
+    localStorage.setItem("otpCodes", JSON.stringify(OTP_CODES));
+  }, [OTP_CODES]);
 
   // Vérifier que l'utilisateur est administrateur
   useEffect(() => {
@@ -87,51 +88,43 @@ const AccessCodeManager = () => {
     }
   }, []);
 
-  const generateAccessCode = async () => {
+  const generateAccessCode = () => {
     if (!newCodeName.trim()) {
       toast.error("Veuillez saisir un nom pour le visiteur");
       return;
     }
 
-    try {
-      // Trouver le nombre de codes existants qui commencent par VISIT
-      const existingVisitCodes = Object.keys(ACCESS_CODES).filter(code => 
-        code.startsWith('VISIT')
-      );
+    // Trouver le nombre de codes existants qui commencent par VISIT
+    const existingVisitCodes = Object.keys(ACCESS_CODES).filter(code => 
+      code.startsWith('VISIT')
+    );
+    
+    // Déterminer le prochain numéro à utiliser
+    let nextNumber = 1;
+    if (existingVisitCodes.length > 0) {
+      // Extraire les numéros des codes existants
+      const existingNumbers = existingVisitCodes.map(code => {
+        const numPart = code.substring(5); // Extraire la partie numérique
+        return parseInt(numPart, 10);
+      });
       
-      // Déterminer le prochain numéro à utiliser
-      let nextNumber = 1;
-      if (existingVisitCodes.length > 0) {
-        // Extraire les numéros des codes existants
-        const existingNumbers = existingVisitCodes.map(code => {
-          const numPart = code.substring(5); // Extraire la partie numérique
-          return parseInt(numPart, 10);
-        });
-        
-        // Trouver le numéro maximum
-        const maxNumber = Math.max(...existingNumbers);
-        nextNumber = maxNumber + 1;
-      }
-      
-      // Formater le nouveau code avec le numéro séquentiel (format VISIT001)
-      const formattedNumber = nextNumber.toString().padStart(3, '0');
-      const newCode = `VISIT${formattedNumber}`;
-      
-      // Ajouter le code à Supabase
-      await addAccessCode(newCode, { role: newCodeRole, name: newCodeName }, 'permanent');
-      
-      // Mettre à jour l'état local
-      setAccessCodes(prevCodes => ({
-        ...prevCodes,
-        [newCode]: { role: newCodeRole, name: newCodeName }
-      }));
-      
-      setGeneratedCode(newCode);
-      toast.success(`Code d'accès généré pour ${newCodeName}`);
-    } catch (error) {
-      console.error("Erreur lors de la génération du code:", error);
-      toast.error("Erreur lors de la génération du code d'accès");
+      // Trouver le numéro maximum
+      const maxNumber = Math.max(...existingNumbers);
+      nextNumber = maxNumber + 1;
     }
+    
+    // Formater le nouveau code avec le numéro séquentiel (format VISIT001)
+    const formattedNumber = nextNumber.toString().padStart(3, '0');
+    const newCode = `VISIT${formattedNumber}`;
+    
+    // Ajouter ce code à la liste
+    setAccessCodes(prevCodes => ({
+      ...prevCodes,
+      [newCode]: { role: newCodeRole, name: newCodeName }
+    }));
+    
+    setGeneratedCode(newCode);
+    toast.success(`Code d'accès généré pour ${newCodeName}`);
   };
 
   const copyToClipboard = (text: string) => {
@@ -139,7 +132,7 @@ const AccessCodeManager = () => {
     toast.success("Code copié dans le presse-papiers");
   };
 
-  const generateOTPCode = async () => {
+  const generateOTPCode = () => {
     if (!newOTPName.trim()) {
       toast.error("Veuillez saisir un nom pour l'utilisateur OTP");
       return;
@@ -156,23 +149,15 @@ const AccessCodeManager = () => {
       return;
     }
 
-    try {
-      // Ajouter le code à Supabase
-      await addAccessCode(newOTPCode, { role: "visitor", name: newOTPName }, 'otp');
-      
-      // Mettre à jour l'état local
-      setOTPCodes(prevCodes => ({
-        ...prevCodes,
-        [newOTPCode]: { role: "visitor", name: newOTPName }
-      }));
+    // Ajouter ce code OTP à la liste
+    setOTPCodes(prevCodes => ({
+      ...prevCodes,
+      [newOTPCode]: { role: "visitor", name: newOTPName }
+    }));
 
-      toast.success(`Code OTP permanent généré pour ${newOTPName}`);
-      setNewOTPCode("");
-      setNewOTPName("");
-    } catch (error) {
-      console.error("Erreur lors de la génération du code OTP:", error);
-      toast.error("Erreur lors de la génération du code OTP");
-    }
+    toast.success(`Code OTP permanent généré pour ${newOTPName}`);
+    setNewOTPCode("");
+    setNewOTPName("");
   };
 
   const handleDeleteCode = (code: string, isOTP: boolean) => {
@@ -180,48 +165,37 @@ const AccessCodeManager = () => {
     setShowDeleteDialog(true);
   };
 
-  const confirmDeleteCode = async () => {
+  const confirmDeleteCode = () => {
     const { code, isOTP } = codeToDelete;
     
-    try {
-      if (isOTP) {
-        if (code === "1234" && Object.keys(OTP_CODES).length === 1) {
-          toast.error("Impossible de supprimer le dernier code OTP par défaut");
-        } else {
-          await deleteAccessCode(code);
-          setOTPCodes(prevCodes => {
-            const newCodes = { ...prevCodes };
-            delete newCodes[code];
-            return newCodes;
-          });
-          toast.success("Code OTP révoqué avec succès");
-        }
+    if (isOTP) {
+      if (code === "1234" && Object.keys(OTP_CODES).length === 1) {
+        toast.error("Impossible de supprimer le dernier code OTP par défaut");
       } else {
-        if (code === "ADMIN2024") {
-          toast.error("Impossible de supprimer le code administrateur");
-        } else if ((code === "VISIT001" || code === "VISIT002") && Object.keys(ACCESS_CODES).length <= 3) {
-          toast.error("Impossible de supprimer les codes visiteurs par défaut");
-        } else {
-          await deleteAccessCode(code);
-          setAccessCodes(prevCodes => {
-            const newCodes = { ...prevCodes };
-            delete newCodes[code];
-            return newCodes;
-          });
-          toast.success("Code d'accès révoqué avec succès");
-        }
+        setOTPCodes(prevCodes => {
+          const newCodes = { ...prevCodes };
+          delete newCodes[code];
+          return newCodes;
+        });
+        toast.success("Code OTP révoqué avec succès");
       }
-    } catch (error) {
-      console.error("Erreur lors de la suppression du code:", error);
-      toast.error("Erreur lors de la révocation du code");
+    } else {
+      if (code === "ADMIN2024") {
+        toast.error("Impossible de supprimer le code administrateur");
+      } else if ((code === "VISIT001" || code === "VISIT002") && Object.keys(ACCESS_CODES).length <= 3) {
+        toast.error("Impossible de supprimer les codes visiteurs par défaut");
+      } else {
+        setAccessCodes(prevCodes => {
+          const newCodes = { ...prevCodes };
+          delete newCodes[code];
+          return newCodes;
+        });
+        toast.success("Code d'accès révoqué avec succès");
+      }
     }
     
     setShowDeleteDialog(false);
   };
-
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Chargement des codes d'accès...</div>;
-  }
 
   return (
     <div className="container mx-auto py-6 px-4">
