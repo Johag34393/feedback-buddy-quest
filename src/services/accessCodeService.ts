@@ -1,5 +1,6 @@
 
 import { supabase, AccessCode, UserDetails } from '@/lib/supabase';
+import { initializeSupabase } from '@/lib/initSupabase';
 
 // Vérifier si Supabase est configuré
 const isSupabaseConfigured = !!supabase;
@@ -14,6 +15,16 @@ const defaultCodes = {
 const defaultOTPCodes = {
   "1234": { role: "visitor", name: "Visiteur OTP 1" }
 };
+
+// Initialiser Supabase au démarrage de l'application
+if (isSupabaseConfigured) {
+  console.log('Initialisation de Supabase...');
+  initializeSupabase().catch(error => {
+    console.error('Erreur lors de l\'initialisation de Supabase:', error);
+  });
+} else {
+  console.warn('Supabase non configuré. Utilisation des codes par défaut.');
+}
 
 // Récupérer tous les codes d'accès permanents
 export const getAllAccessCodes = async (): Promise<Record<string, UserDetails>> => {
@@ -143,10 +154,19 @@ export const initializeDefaultCodes = async (): Promise<void> => {
   }
   
   try {
-    const { data } = await supabase
+    // Essayer d'accéder à la table pour vérifier qu'elle existe
+    const { data, error } = await supabase
       .from('access_codes')
-      .select('code');
-      
+      .select('code')
+      .limit(1);
+    
+    // Si une erreur se produit, c'est probablement que la table n'existe pas
+    if (error) {
+      console.warn('Erreur lors de l\'accès à la table access_codes. Tentative d\'initialisation...', error);
+      await initializeSupabase();
+      return;
+    }
+    
     // Si aucun code n'existe, ajouter les codes par défaut
     if (!data || data.length === 0) {
       const defaultCodes = [
@@ -157,6 +177,7 @@ export const initializeDefaultCodes = async (): Promise<void> => {
       ];
       
       await supabase.from('access_codes').insert(defaultCodes);
+      console.log('Codes d\'accès par défaut ajoutés à la base de données.');
     }
   } catch (error) {
     console.error('Exception lors de l\'initialisation des codes d\'accès par défaut:', error);
