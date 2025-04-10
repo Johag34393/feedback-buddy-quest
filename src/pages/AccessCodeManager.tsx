@@ -25,13 +25,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Copy, KeyRound, Shield } from "lucide-react";
-import { 
-  getAccessCodes, 
-  getOTPCodes, 
-  addAccessCode, 
-  deleteAccessCode, 
-  UserDetails 
-} from "@/services/accessCodeService";
+
+// Réutiliser les types définis dans Login.tsx
+interface UserDetails {
+  role: string;
+  name: string;
+}
 
 interface AccessCodes {
   [key: string]: UserDetails;
@@ -52,28 +51,28 @@ const AccessCodeManager = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [codeToDelete, setCodeToDelete] = useState<{ code: string, isOTP: boolean }>({ code: "", isOTP: false });
   const [activeTab, setActiveTab] = useState("access");
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Charger les codes depuis Supabase
+  // Charger les codes depuis localStorage
   useEffect(() => {
-    const loadCodes = async () => {
-      setIsLoading(true);
-      try {
-        const accessCodes = await getAccessCodes();
-        const otpCodes = await getOTPCodes();
-        
-        setAccessCodes(accessCodes);
-        setOTPCodes(otpCodes);
-      } catch (error) {
-        console.error("Erreur lors du chargement des codes:", error);
-        toast.error("Erreur lors du chargement des codes d'accès");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadCodes();
+    const storedCodes = localStorage.getItem("accessCodes");
+    if (storedCodes) {
+      setAccessCodes(JSON.parse(storedCodes));
+    }
+
+    const storedOTPCodes = localStorage.getItem("otpCodes");
+    if (storedOTPCodes) {
+      setOTPCodes(JSON.parse(storedOTPCodes));
+    }
   }, []);
+
+  // Sauvegarder les codes dans localStorage quand ils changent
+  useEffect(() => {
+    localStorage.setItem("accessCodes", JSON.stringify(ACCESS_CODES));
+  }, [ACCESS_CODES]);
+
+  useEffect(() => {
+    localStorage.setItem("otpCodes", JSON.stringify(OTP_CODES));
+  }, [OTP_CODES]);
 
   // Vérifier que l'utilisateur est administrateur
   useEffect(() => {
@@ -89,7 +88,7 @@ const AccessCodeManager = () => {
     }
   }, []);
 
-  const generateAccessCode = async () => {
+  const generateAccessCode = () => {
     if (!newCodeName.trim()) {
       toast.error("Veuillez saisir un nom pour le visiteur");
       return;
@@ -118,21 +117,14 @@ const AccessCodeManager = () => {
     const formattedNumber = nextNumber.toString().padStart(3, '0');
     const newCode = `VISIT${formattedNumber}`;
     
-    // Ajouter ce code à Supabase
-    const success = await addAccessCode(newCode, newCodeRole, newCodeName, false);
+    // Ajouter ce code à la liste
+    setAccessCodes(prevCodes => ({
+      ...prevCodes,
+      [newCode]: { role: newCodeRole, name: newCodeName }
+    }));
     
-    if (success) {
-      // Mettre à jour l'état local
-      setAccessCodes(prevCodes => ({
-        ...prevCodes,
-        [newCode]: { role: newCodeRole, name: newCodeName }
-      }));
-      
-      setGeneratedCode(newCode);
-      toast.success(`Code d'accès généré pour ${newCodeName}`);
-    } else {
-      toast.error("Erreur lors de la génération du code d'accès");
-    }
+    setGeneratedCode(newCode);
+    toast.success(`Code d'accès généré pour ${newCodeName}`);
   };
 
   const copyToClipboard = (text: string) => {
@@ -140,7 +132,7 @@ const AccessCodeManager = () => {
     toast.success("Code copié dans le presse-papiers");
   };
 
-  const generateOTPCode = async () => {
+  const generateOTPCode = () => {
     if (!newOTPName.trim()) {
       toast.error("Veuillez saisir un nom pour l'utilisateur OTP");
       return;
@@ -157,22 +149,15 @@ const AccessCodeManager = () => {
       return;
     }
 
-    // Ajouter ce code OTP à Supabase
-    const success = await addAccessCode(newOTPCode, "visitor", newOTPName, true);
-    
-    if (success) {
-      // Mettre à jour l'état local
-      setOTPCodes(prevCodes => ({
-        ...prevCodes,
-        [newOTPCode]: { role: "visitor", name: newOTPName }
-      }));
+    // Ajouter ce code OTP à la liste
+    setOTPCodes(prevCodes => ({
+      ...prevCodes,
+      [newOTPCode]: { role: "visitor", name: newOTPName }
+    }));
 
-      toast.success(`Code OTP permanent généré pour ${newOTPName}`);
-      setNewOTPCode("");
-      setNewOTPName("");
-    } else {
-      toast.error("Erreur lors de la génération du code OTP");
-    }
+    toast.success(`Code OTP permanent généré pour ${newOTPName}`);
+    setNewOTPCode("");
+    setNewOTPName("");
   };
 
   const handleDeleteCode = (code: string, isOTP: boolean) => {
@@ -180,25 +165,19 @@ const AccessCodeManager = () => {
     setShowDeleteDialog(true);
   };
 
-  const confirmDeleteCode = async () => {
+  const confirmDeleteCode = () => {
     const { code, isOTP } = codeToDelete;
     
     if (isOTP) {
       if (code === "1234" && Object.keys(OTP_CODES).length === 1) {
         toast.error("Impossible de supprimer le dernier code OTP par défaut");
       } else {
-        const success = await deleteAccessCode(code);
-        
-        if (success) {
-          setOTPCodes(prevCodes => {
-            const newCodes = { ...prevCodes };
-            delete newCodes[code];
-            return newCodes;
-          });
-          toast.success("Code OTP révoqué avec succès");
-        } else {
-          toast.error("Erreur lors de la suppression du code OTP");
-        }
+        setOTPCodes(prevCodes => {
+          const newCodes = { ...prevCodes };
+          delete newCodes[code];
+          return newCodes;
+        });
+        toast.success("Code OTP révoqué avec succès");
       }
     } else {
       if (code === "ADMIN2024") {
@@ -206,34 +185,17 @@ const AccessCodeManager = () => {
       } else if ((code === "VISIT001" || code === "VISIT002") && Object.keys(ACCESS_CODES).length <= 3) {
         toast.error("Impossible de supprimer les codes visiteurs par défaut");
       } else {
-        const success = await deleteAccessCode(code);
-        
-        if (success) {
-          setAccessCodes(prevCodes => {
-            const newCodes = { ...prevCodes };
-            delete newCodes[code];
-            return newCodes;
-          });
-          toast.success("Code d'accès révoqué avec succès");
-        } else {
-          toast.error("Erreur lors de la suppression du code d'accès");
-        }
+        setAccessCodes(prevCodes => {
+          const newCodes = { ...prevCodes };
+          delete newCodes[code];
+          return newCodes;
+        });
+        toast.success("Code d'accès révoqué avec succès");
       }
     }
     
     setShowDeleteDialog(false);
   };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-6 flex justify-center items-center min-h-[50vh]">
-        <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p>Chargement des codes d'accès...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto py-6 px-4">
@@ -332,40 +294,32 @@ const AccessCodeManager = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Object.entries(ACCESS_CODES).length > 0 ? (
-                        Object.entries(ACCESS_CODES).map(([code, details]) => (
-                          <TableRow key={code}>
-                            <TableCell className="font-medium">{code}</TableCell>
-                            <TableCell>{details.name}</TableCell>
-                            <TableCell>{details.role}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => copyToClipboard(code)}
-                                >
-                                  <Copy className="h-4 w-4 text-gray-500" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => handleDeleteCode(code, false)}
-                                  disabled={code === "ADMIN2024"}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-4">
-                            Aucun code d'accès trouvé
+                      {Object.entries(ACCESS_CODES).map(([code, details]) => (
+                        <TableRow key={code}>
+                          <TableCell className="font-medium">{code}</TableCell>
+                          <TableCell>{details.name}</TableCell>
+                          <TableCell>{details.role}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => copyToClipboard(code)}
+                              >
+                                <Copy className="h-4 w-4 text-gray-500" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleDeleteCode(code, false)}
+                                disabled={code === "ADMIN2024"}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
-                      )}
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
@@ -428,38 +382,30 @@ const AccessCodeManager = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Object.entries(OTP_CODES).length > 0 ? (
-                        Object.entries(OTP_CODES).map(([code, details]) => (
-                          <TableRow key={code}>
-                            <TableCell className="font-medium">{code}</TableCell>
-                            <TableCell>{details.name}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => copyToClipboard(code)}
-                                >
-                                  <Copy className="h-4 w-4 text-gray-500" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => handleDeleteCode(code, true)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center py-4">
-                            Aucun code OTP trouvé
+                      {Object.entries(OTP_CODES).map(([code, details]) => (
+                        <TableRow key={code}>
+                          <TableCell className="font-medium">{code}</TableCell>
+                          <TableCell>{details.name}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => copyToClipboard(code)}
+                              >
+                                <Copy className="h-4 w-4 text-gray-500" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleDeleteCode(code, true)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
-                      )}
+                      ))}
                     </TableBody>
                   </Table>
                 </div>

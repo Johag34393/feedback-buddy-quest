@@ -15,7 +15,6 @@ import Deployment from "./pages/Deployment";
 import AccessCodeManager from "./pages/AccessCodeManager";
 import Quiz from "./pages/Quiz";
 import { useEffect, useState } from "react";
-import { initializeSupabase } from "./lib/initSupabase";
 
 const queryClient = new QueryClient();
 
@@ -37,17 +36,6 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  
-  // Initialiser Supabase au démarrage
-  useEffect(() => {
-    const init = async () => {
-      await initializeSupabase();
-      setIsInitialized(true);
-    };
-    
-    init();
-  }, []);
   
   useEffect(() => {
     const checkAuth = () => {
